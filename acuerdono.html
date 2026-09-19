@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Allebasi</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="contenedor">
+    <p class="texto">Agradecemos tu respuesta y entendemos que no estés de acuerdo con las condiciones de la compra. Te esperamos en otra oportunidad 🤝 ✨</p>
+    <button class="btn" onclick="salir()">SALIR</button>
+    <img class="logo" style="margin-top:40px" src="assets/logo_allebasi.jpg" alt="Allebasi">
+  </div>
+  <script src="common.js"></script>
+  <script>
+    function salir() {
+      limpiarPedido();
+      irA("index.html");
+    }
+  </script>
+</body>
+</html>
