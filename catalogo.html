@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Allebasi - Catálogo</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <img class="logo" src="assets/logo_allebasi.jpg" alt="Allebasi">
+  <div class="contenedor ancho">
+    <h1 id="titulo">Catálogo</h1>
+    <div id="grid" class="grid-catalogo">
+      <p class="estado">Cargando prendas...</p>
+    </div>
+  </div>
+
+  <div class="barra-continuar">
+    <div class="contenedor">
+      <button id="btnContinuar" class="btn" disabled>Continuar</button>
+      <button class="btn btn-secundario" onclick="irA('index.html')">Volver al menú</button>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="common.js"></script>
+  <script>
+    const pedido = getPedido();
+    const artista = pedido.artista;
+    document.getElementById("titulo").textContent = artista || "Catálogo";
+
+    if (!artista) {
+      irA("index.html");
+    }
+
+    async function cargarCatalogo() {
+      const grid = document.getElementById("grid");
+      try {
+        const data = await apiGet({ action: "catalog", artist: artista });
+        if (!data.items || data.items.length === 0) {
+          grid.innerHTML = '<p class="estado">No hay prendas disponibles para este catálogo.</p>';
+          return;
+        }
+        grid.innerHTML = "";
+        data.items.forEach((item, idxImagen) => {
+          const tarjeta = document.createElement("div");
+          tarjeta.className = "tarjeta";
+
+          const img = document.createElement("img");
+          img.src = item.imagen;
+          img.alt = artista;
+          tarjeta.appendChild(img);
+
+          const cuerpo = document.createElement("div");
+          cuerpo.className = "cuerpo";
+
+          if (item.productos.length === 0) {
+            cuerpo.innerHTML = '<p class="estado" style="padding:0">Sin detalle de producto</p>';
+          }
+
+          item.productos.forEach((prod, idxProd) => {
+            const fila = document.createElement("label");
+            fila.className = "producto";
+
+            const info = document.createElement("div");
+            info.className = "info";
+            info.innerHTML = `
+              <div class="nombre">${prod.nombre || "Prenda"}</div>
+              ${prod.detalle ? `<div class="detalle">${prod.detalle}</div>` : ""}
+              <div class="precio">${formatoMoneda(prod.precio)}</div>
+              <div class="codigo">Código: ${prod.codigo}</div>`;
+
+            const check = document.createElement("input");
+            check.type = "checkbox";
+            check.name = "seleccion";
+            check.value = prod.codigo;
+
+            check.addEventListener("change", () => {
+              if (check.checked) {
+                document.querySelectorAll('input[name="seleccion"]').forEach(c => {
+                  if (c !== check) c.checked = false;
+                });
+                setPedido({
+                  imagen: item.imagen,
+                  nombrePrenda: prod.nombre || "Prenda",
+                  codigoPrenda: prod.codigo,
+                  valorUnitarioEstimado: prod.precio
+                });
+                document.getElementById("btnContinuar").disabled = false;
+              } else {
+                document.getElementById("btnContinuar").disabled =
+                  document.querySelectorAll('input[name="seleccion"]:checked').length === 0;
+              }
+            });
+
+            fila.appendChild(info);
+            fila.appendChild(check);
+            cuerpo.appendChild(fila);
+          });
+
+          tarjeta.appendChild(cuerpo);
+          grid.appendChild(tarjeta);
+        });
+      } catch (e) {
+        grid.innerHTML = '<p class="estado">No se pudo cargar el catálogo. Intenta de nuevo.</p>';
+      }
+    }
+    cargarCatalogo();
+
+    document.getElementById("btnContinuar").addEventListener("click", () => {
+      irA("preacuerdo.html");
+    });
+  </script>
+</body>
+</html>
