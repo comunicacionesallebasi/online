@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Allebasi - Detalles de la prenda</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="con-referencia">
+    <div class="form-col">
+      <h1>Para continuar con tu pedido necesito que me brindes los detalles de personalización que se tendrán en cuenta si aplican para la prenda seleccionada:</h1>
+
+      <form id="formPrenda">
+        <label for="color">Color:</label>
+        <input type="text" id="color" required>
+
+        <label for="horma">Horma (variante que prefieres: Normal, Oversize, Crop Top, Baby look, etc.):</label>
+        <input type="text" id="horma" required>
+
+        <label for="pedreria">¿Deseas pedrería negra - brillitos? (sí/no; si es sí, detállalo):</label>
+        <input type="text" id="pedreria">
+
+        <label for="logo">¿Deseas el logo en pedrería brillante o impreso? (pedrería/aplique brillante, impreso en DTF, o ninguno):</label>
+        <input type="text" id="logo">
+
+        <label for="observaciones">Observaciones adicionales (si no tienes, escribe "No aplica"):</label>
+        <input type="text" id="observaciones">
+
+        <label for="cantidad">Cantidad</label>
+        <input type="number" id="cantidad" min="1" value="1" required>
+
+        <label for="talla">Talla</label>
+        <input type="text" id="talla" required>
+
+        <label for="ciudad">Ciudad de Envío</label>
+        <input type="text" id="ciudad" required>
+
+        <div class="fila-botones" style="margin-top:26px">
+          <button type="button" class="btn btn-secundario" onclick="cancelar()">CANCELAR</button>
+          <button type="submit" class="btn">ACEPTAR</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="referencia" id="referencia"></div>
+  </div>
+
+  <img class="logo" style="margin-top:40px" src="assets/logo_allebasi.jpg" alt="Allebasi">
+
+  <script src="config.js"></script>
+  <script src="common.js"></script>
+  <script>
+    const pedido = getPedido();
+    if (!pedido.codigoPrenda) {
+      irA("index.html");
+    }
+    pintarReferencia("referencia");
+
+    function cancelar() {
+      limpiarPedido();
+      irA("index.html");
+    }
+
+    document.getElementById("formPrenda").addEventListener("submit", (e) => {
+      e.preventDefault();
+      setPedido({
+        color: document.getElementById("color").value.trim(),
+        horma: document.getElementById("horma").value.trim(),
+        pedreria: document.getElementById("pedreria").value.trim() || "No aplica",
+        logo: document.getElementById("logo").value.trim() || "No aplica",
+        observaciones: document.getElementById("observaciones").value.trim() || "No aplica",
+        cantidad: document.getElementById("cantidad").value,
+        talla: document.getElementById("talla").value.trim(),
+        ciudadEnvio: document.getElementById("ciudad").value.trim()
+      });
+      irA("info_personal.html");
+    });
+  </script>
+</body>
+</html>
