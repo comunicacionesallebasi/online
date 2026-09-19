@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Allebasi - Catálogo</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <img class="logo" src="assets/logo_allebasi.jpg" alt="Allebasi">
+  <div class="contenedor">
+    <div id="lista" class="menu-lista">
+      <p class="estado">Cargando catálogos...</p>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="common.js"></script>
+  <script>
+    limpiarPedido(); // el menú siempre empieza un pedido nuevo
+
+    async function cargarMenu() {
+      const cont = document.getElementById("lista");
+      try {
+        const data = await apiGet({ action: "menu" });
+        if (!data.items || data.items.length === 0) {
+          cont.innerHTML = '<p class="estado">No hay catálogos disponibles por ahora.</p>';
+          return;
+        }
+        cont.innerHTML = "";
+        data.items.forEach(item => {
+          const btn = document.createElement("button");
+          btn.className = "btn";
+          btn.textContent = item.nombre;
+          btn.onclick = () => {
+            setPedido({ artista: item.nombre });
+            irA("catalogo.html");
+          };
+          cont.appendChild(btn);
+        });
+      } catch (e) {
+        cont.innerHTML = '<p class="estado">No se pudo cargar el menú. Intenta de nuevo más tarde.</p>';
+      }
+    }
+    cargarMenu();
+  </script>
+</body>
+</html>
