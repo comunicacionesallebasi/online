@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Allebasi - Datos de envío</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="con-referencia">
+    <div class="form-col">
+      <h1>Además, te pido que por favor me confirmes tus datos completos para el envío:</h1>
+
+      <form id="formPersonal">
+        <label for="nombre">Nombre completo:</label>
+        <input type="text" id="nombre" required>
+
+        <label for="documento">Número de documento:</label>
+        <input type="text" id="documento" required>
+
+        <label for="correo">Correo electrónico:</label>
+        <input type="email" id="correo" required>
+
+        <label for="telefono">Número de teléfono de contacto:</label>
+        <input type="tel" id="telefono" required>
+
+        <label for="direccion">Dirección de envío completa:</label>
+        <input type="text" id="direccion" required>
+
+        <div class="fila-botones" style="margin-top:26px">
+          <button type="button" class="btn btn-secundario" onclick="cancelar()">CANCELAR</button>
+          <button type="submit" class="btn" id="btnAceptar">ACEPTAR</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="referencia" id="referencia"></div>
+  </div>
+
+  <img class="logo" style="margin-top:40px" src="assets/logo_allebasi.jpg" alt="Allebasi">
+
+  <script src="config.js"></script>
+  <script src="common.js"></script>
+  <script>
+    const pedido = getPedido();
+    if (!pedido.codigoPrenda) {
+      irA("index.html");
+    }
+    pintarReferencia("referencia");
+
+    function cancelar() {
+      limpiarPedido();
+      irA("index.html");
+    }
+
+    document.getElementById("formPersonal").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("btnAceptar");
+      btn.disabled = true;
+      btn.textContent = "Enviando...";
+
+      const datosFinales = setPedido({
+        nombreCompleto: document.getElementById("nombre").value.trim(),
+        numeroDocumento: document.getElementById("documento").value.trim(),
+        correo: document.getElementById("correo").value.trim(),
+        telefono: document.getElementById("telefono").value.trim(),
+        direccionEnvio: document.getElementById("direccion").value.trim()
+      });
+
+      try {
+        const resultado = await apiPost(datosFinales);
+        setPedido({ valorTotal: resultado.valorTotal, valorUnitario: resultado.valorUnitario });
+        irA("costo.html");
+      } catch (err) {
+        alert("Hubo un problema al registrar tu pedido. Intenta de nuevo.");
+        btn.disabled = false;
+        btn.textContent = "ACEPTAR";
+      }
+    });
+  </script>
+</body>
+</html>
