@@ -111,6 +111,18 @@ textarea {
   border: 1px solid var(--gris-borde);
   border-radius: 6px;
   font-family: inherit;
+  background: var(--blanco);
+}
+
+.fila-telefono {
+  display: flex;
+  gap: 10px;
+}
+.fila-telefono select {
+  flex: 0 0 165px;
+}
+.fila-telefono input {
+  flex: 1;
 }
 
 .estado {
