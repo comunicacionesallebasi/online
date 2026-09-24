@@ -38,14 +38,31 @@ function getIdempotencyKey() {
   return key;
 }
 
-// GET al backend, ej: apiGet({action:"menu"})
-async function apiGet(params) {
-  const url = new URL(API_URL);
-  Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
-  const resp = await fetch(url.toString());
-  const data = await resp.json();
-  if (data.error) throw new Error(data.error);
-  return data;
+// GET al backend, ej: apiGet({action:"menu"}). Con los mismos reintentos
+// silenciosos que apiPost: la redirección interna que usa Apps Script
+// para entregar la respuesta (script.googleusercontent.com/macros/echo)
+// a veces responde 404 de forma transitoria, tanto en GET como en POST.
+// Antes esto solo estaba cubierto para el envío del pedido; ahora
+// también cubre la carga del MENU y del CATALOGO.
+async function apiGet(params, intentos) {
+  intentos = intentos || 3;
+  let ultimoError;
+  for (let i = 0; i < intentos; i++) {
+    try {
+      const url = new URL(API_URL);
+      Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+      const resp = await fetch(url.toString());
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+      return data;
+    } catch (err) {
+      ultimoError = err;
+      if (i < intentos - 1) {
+        await new Promise(r => setTimeout(r, 700 * (i + 1)));
+      }
+    }
+  }
+  throw ultimoError;
 }
 
 // POST al backend, con reintentos silenciosos ante fallos de red
