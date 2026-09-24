@@ -21,6 +21,9 @@
         <label for="correo">Correo electrónico:</label>
         <input type="email" id="correo" required>
 
+        <label for="ciudad">Ciudad de Envío:</label>
+        <input type="text" id="ciudad" required>
+
         <label for="telefono">Número de teléfono de contacto:</label>
         <div class="fila-telefono">
           <select id="indicativo" aria-label="Indicativo de país"></select>
@@ -121,6 +124,7 @@
         nombreCompleto: document.getElementById("nombre").value.trim(),
         numeroDocumento: document.getElementById("documento").value.trim(),
         correo: document.getElementById("correo").value.trim(),
+        ciudadEnvio: document.getElementById("ciudad").value.trim(),
         telefono: document.getElementById("indicativo").value + document.getElementById("telefono").value.trim().replace(/\D/g, ""),
         direccionEnvio: document.getElementById("direccion").value.trim()
       });

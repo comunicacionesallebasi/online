@@ -101,22 +101,36 @@ function formatoMoneda(valor) {
 }
 
 // Pinta en la barra lateral las imágenes de TODAS las prendas elegidas
-// en el catálogo (hasta 3), para que sirvan de referencia mientras se
-// llenan los formularios.
+// en el catálogo (hasta 3). Se usa en INFO PERSONAL, donde ya se
+// respondieron las preguntas de todas y sirve como resumen visual.
 function pintarReferencia(contenedorId) {
   const pedido = getPedido();
   const cont = document.getElementById(contenedorId);
   const items = pedido.items || [];
   if (!cont || items.length === 0) return;
   cont.innerHTML = items.map(function (item) {
-    return `
-      <div class="referencia-item">
-        <img src="${item.imagen}" alt="${item.nombrePrenda || ''}">
-        <div class="desc">
-          <strong>${pedido.artista || ''}</strong><br>
-          ${item.nombrePrenda || ''}<br>
-          ${formatoMoneda(item.valorUnitarioEstimado)} · Código ${item.codigoPrenda || ''}
-        </div>
-      </div>`;
+    return renderTarjetaReferencia_(item, pedido.artista);
   }).join('');
+}
+
+// Pinta en la barra lateral la imagen de UNA sola prenda. Se usa en
+// INFO PRENDA, donde cada página muestra solo la prenda que se está
+// preguntando en ese momento, para que quede claro a qué corresponde
+// cada pregunta.
+function pintarReferenciaItem(contenedorId, item, artista) {
+  const cont = document.getElementById(contenedorId);
+  if (!cont || !item) return;
+  cont.innerHTML = renderTarjetaReferencia_(item, artista);
+}
+
+function renderTarjetaReferencia_(item, artista) {
+  return `
+    <div class="referencia-item">
+      <img src="${item.imagen}" alt="${item.nombrePrenda || ''}">
+      <div class="desc">
+        <strong>${artista || ''}</strong><br>
+        ${item.nombrePrenda || ''}<br>
+        ${formatoMoneda(item.valorUnitarioEstimado)} · Código ${item.codigoPrenda || ''}
+      </div>
+    </div>`;
 }
