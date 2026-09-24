@@ -12,6 +12,8 @@
     <div class="valor-grande" id="valor">$0</div>
     <p class="texto" id="idPedidoTexto"></p>
 
+    <div id="resumen" class="resumen-pedido"></div>
+
     <p class="texto">Un asesor se comunicará contigo en el transcurso de las siguientes 6 horas para confirmar el costo de envío y coordinar el pago total.
 
 También puedes contactar a nuestro asesor al teléfono: 573153265915
@@ -26,6 +28,22 @@ O al correo comunicacionesallebasi@gmail.com</p>
     document.getElementById("valor").textContent = formatoMoneda(pedido.valorTotal);
     if (pedido.idPedido) {
       document.getElementById("idPedidoTexto").textContent = "Número de pedido: " + pedido.idPedido;
+    }
+
+    const resumenCont = document.getElementById("resumen");
+    const items = pedido.resumenItems || [];
+    if (items.length > 0) {
+      resumenCont.innerHTML = items.map(function (it) {
+        return `
+          <div class="resumen-item">
+            <div>
+              <div class="nombre">${it.nombrePrenda || ""}</div>
+              <div class="detalle-linea">Cantidad: ${it.cantidad || ""} · Talla: ${it.talla || ""}${it.color ? " · Color: " + it.color : ""}</div>
+              <div class="detalle-linea">Código: ${it.codigoPrenda || ""}</div>
+            </div>
+            <div class="valor">${formatoMoneda(it.valorTotal)}</div>
+          </div>`;
+      }).join("");
     }
 
     function finalizar() {

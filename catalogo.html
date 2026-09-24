@@ -10,6 +10,8 @@
   <img class="logo" src="assets/logo_allebasi.jpg" alt="Allebasi">
   <div class="contenedor ancho">
     <h1 id="titulo">Catálogo</h1>
+    <p class="texto">Puedes escoger hasta 3 prendas distintas de esta colección para el mismo pedido.</p>
+    <div class="contador-seleccion" id="contador">0 de 3 prendas seleccionadas</div>
     <div id="grid" class="grid-catalogo">
       <p class="estado">Cargando prendas...</p>
     </div>
@@ -33,6 +35,22 @@
       irA("index.html");
     }
 
+    // Selección en curso: hasta 3 prendas. Se guarda en memoria mientras
+    // el cliente navega esta página y se persiste en sessionStorage al
+    // presionar Continuar.
+    let seleccionados = []; // [{imagen, enlaceOriginal, nombrePrenda, codigoPrenda, precio}]
+
+    function actualizarContador() {
+      document.getElementById("contador").textContent = seleccionados.length + " de " + MAX_PRENDAS + " prendas seleccionadas";
+      document.getElementById("btnContinuar").disabled = seleccionados.length === 0;
+      // Deshabilita los checkboxes no marcados si ya se llegó al máximo.
+      document.querySelectorAll('input[name="seleccion"]').forEach(chk => {
+        if (!chk.checked) {
+          chk.disabled = seleccionados.length >= MAX_PRENDAS;
+        }
+      });
+    }
+
     async function cargarCatalogo() {
       const grid = document.getElementById("grid");
       try {
@@ -42,7 +60,7 @@
           return;
         }
         grid.innerHTML = "";
-        data.items.forEach((item, idxImagen) => {
+        data.items.forEach((item) => {
           const tarjeta = document.createElement("div");
           tarjeta.className = "tarjeta";
 
@@ -58,7 +76,7 @@
             cuerpo.innerHTML = '<p class="estado" style="padding:0">Sin detalle de producto</p>';
           }
 
-          item.productos.forEach((prod, idxProd) => {
+          item.productos.forEach((prod) => {
             const fila = document.createElement("label");
             fila.className = "producto";
 
@@ -77,21 +95,21 @@
 
             check.addEventListener("change", () => {
               if (check.checked) {
-                document.querySelectorAll('input[name="seleccion"]').forEach(c => {
-                  if (c !== check) c.checked = false;
-                });
-                setPedido({
+                if (seleccionados.length >= MAX_PRENDAS) {
+                  check.checked = false;
+                  return;
+                }
+                seleccionados.push({
                   imagen: item.imagen,
                   enlacePrenda: item.enlaceOriginal,
                   nombrePrenda: prod.nombre || "Prenda",
                   codigoPrenda: prod.codigo,
                   valorUnitarioEstimado: prod.precio
                 });
-                document.getElementById("btnContinuar").disabled = false;
               } else {
-                document.getElementById("btnContinuar").disabled =
-                  document.querySelectorAll('input[name="seleccion"]:checked').length === 0;
+                seleccionados = seleccionados.filter(s => s.codigoPrenda !== prod.codigo);
               }
+              actualizarContador();
             });
 
             fila.appendChild(info);
@@ -109,6 +127,8 @@
     cargarCatalogo();
 
     document.getElementById("btnContinuar").addEventListener("click", () => {
+      if (seleccionados.length === 0) return;
+      setPedido({ items: seleccionados });
       irA("preacuerdo.html");
     });
   </script>

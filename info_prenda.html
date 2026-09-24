@@ -9,32 +9,17 @@
 <body>
   <div class="con-referencia">
     <div class="form-col">
-      <h1>Para continuar con tu pedido necesito que me brindes los detalles de personalización que se tendrán en cuenta si aplican para la prenda seleccionada:</h1>
+      <h1>Para continuar con tu pedido necesito que me brindes los detalles de personalización que se tendrán en cuenta si aplican para la(s) prenda(s) seleccionada(s):</h1>
+
+      <div class="aviso">
+        Algunas de estas preguntas son generales y puede que no todas apliquen a tu prenda (por ejemplo, no todas tienen horma, logo o pedrería). Si una pregunta no aplica a lo que elegiste, puedes dejarla en blanco.
+      </div>
 
       <form id="formPrenda">
-        <label for="color">Color:</label>
-        <input type="text" id="color" required>
-
-        <label for="horma">Horma (variante que prefieres: Normal, Oversize, Crop Top, Baby look, etc.):</label>
-        <input type="text" id="horma" required>
-
-        <label for="pedreria">¿Deseas pedrería negra - brillitos? (sí/no; si es sí, detállalo):</label>
-        <input type="text" id="pedreria">
-
-        <label for="logo">¿Deseas el logo en pedrería brillante o impreso? (pedrería/aplique brillante, impreso en DTF, o ninguno):</label>
-        <input type="text" id="logo">
-
-        <label for="observaciones">Observaciones adicionales (si no tienes, escribe "No aplica"):</label>
-        <input type="text" id="observaciones">
-
-        <label for="cantidad">Cantidad</label>
-        <input type="number" id="cantidad" min="1" value="1" required>
-
-        <label for="talla">Talla</label>
-        <input type="text" id="talla" required>
-
         <label for="ciudad">Ciudad de Envío</label>
         <input type="text" id="ciudad" required>
+
+        <div id="bloquesPrendas"><!-- se llena por JS, una sección por prenda --></div>
 
         <div class="fila-botones" style="margin-top:26px">
           <button type="button" class="btn btn-secundario" onclick="cancelar()">CANCELAR</button>
@@ -52,7 +37,8 @@
   <script src="common.js"></script>
   <script>
     const pedido = getPedido();
-    if (!pedido.codigoPrenda) {
+    const items = pedido.items || [];
+    if (items.length === 0) {
       irA("index.html");
     }
     pintarReferencia("referencia");
@@ -62,18 +48,60 @@
       irA("index.html");
     }
 
+    // Genera un bloque de preguntas por cada prenda elegida en el catálogo.
+    const cont = document.getElementById("bloquesPrendas");
+    items.forEach((item, i) => {
+      const titulo = items.length > 1 ? `Prenda ${i + 1}: ${item.nombrePrenda || ""}` : `${item.nombrePrenda || "Detalles de la prenda"}`;
+      const bloque = document.createElement("div");
+      bloque.innerHTML = `
+        <h3 class="titulo-item">${titulo}</h3>
+
+        <label for="color_${i}">Color: <span class="opcional">(si no aplica, déjalo en blanco)</span></label>
+        <input type="text" id="color_${i}">
+
+        <label for="horma_${i}">Horma (variante que prefieres: Normal, Oversize, Crop Top, Tank Top.): <span class="opcional">(si no aplica, déjalo en blanco)</span></label>
+        <input type="text" id="horma_${i}">
+
+        <label for="diseno_${i}">Diseño / variante específica de esta prenda: <span class="opcional">(ej. mallas con brillos, encaje rojo, encaje negro — según lo que ofrezca este modelo; si no aplica, déjalo en blanco)</span></label>
+        <input type="text" id="diseno_${i}">
+
+        <label for="pedreria_${i}">¿Deseas pedrería negra - brillitos? (sí/no; si es sí, detállalo): <span class="opcional">(si no aplica, déjalo en blanco)</span></label>
+        <input type="text" id="pedreria_${i}">
+
+        <label for="logo_${i}">¿Deseas el logo en pedrería brillante o impreso? (pedrería/aplique brillante, impreso en DTF, o ninguno): <span class="opcional">(si no aplica, déjalo en blanco)</span></label>
+        <input type="text" id="logo_${i}">
+
+        <label for="observaciones_${i}">Observaciones adicionales: <span class="opcional">(si no tienes, déjalo en blanco)</span></label>
+        <input type="text" id="observaciones_${i}">
+
+        <label for="cantidad_${i}">Cantidad</label>
+        <input type="number" id="cantidad_${i}" min="1" value="1" required>
+
+        <label for="talla_${i}">Talla</label>
+        <input type="text" id="talla_${i}" required>
+      `;
+      cont.appendChild(bloque);
+    });
+
     document.getElementById("formPrenda").addEventListener("submit", (e) => {
       e.preventDefault();
-      setPedido({
-        color: document.getElementById("color").value.trim(),
-        horma: document.getElementById("horma").value.trim(),
-        pedreria: document.getElementById("pedreria").value.trim() || "No aplica",
-        logo: document.getElementById("logo").value.trim() || "No aplica",
-        observaciones: document.getElementById("observaciones").value.trim() || "No aplica",
-        cantidad: document.getElementById("cantidad").value,
-        talla: document.getElementById("talla").value.trim(),
-        ciudadEnvio: document.getElementById("ciudad").value.trim()
-      });
+      const ciudadEnvio = document.getElementById("ciudad").value.trim();
+
+      const itemsDetalle = items.map((item, i) => ({
+        nombrePrenda: item.nombrePrenda,
+        codigoPrenda: item.codigoPrenda,
+        enlacePrenda: item.enlacePrenda,
+        color: document.getElementById(`color_${i}`).value.trim(),
+        horma: document.getElementById(`horma_${i}`).value.trim(),
+        diseno: document.getElementById(`diseno_${i}`).value.trim(),
+        pedreria: document.getElementById(`pedreria_${i}`).value.trim(),
+        logo: document.getElementById(`logo_${i}`).value.trim(),
+        observaciones: document.getElementById(`observaciones_${i}`).value.trim(),
+        cantidad: document.getElementById(`cantidad_${i}`).value,
+        talla: document.getElementById(`talla_${i}`).value.trim()
+      }));
+
+      setPedido({ ciudadEnvio: ciudadEnvio, itemsDetalle: itemsDetalle });
       irA("info_personal.html");
     });
   </script>

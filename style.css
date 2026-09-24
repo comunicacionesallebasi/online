@@ -47,12 +47,35 @@ h1, h2 {
   text-align: left;
 }
 
+h3.titulo-item {
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: left;
+  margin: 34px 0 4px;
+  padding-top: 18px;
+  border-top: 2px solid var(--azul);
+  color: var(--azul-oscuro);
+}
+h3.titulo-item:first-of-type { border-top: none; padding-top: 0; margin-top: 8px; }
+
 p.texto {
   font-size: 1.05rem;
   line-height: 1.5;
   text-align: left;
   margin: 0 0 20px;
   white-space: pre-line;
+}
+
+.aviso {
+  background: #eef6f8;
+  border: 1px solid #cfe3e8;
+  border-radius: var(--radio);
+  padding: 14px 16px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  text-align: left;
+  color: #144d5e;
+  margin: 0 0 20px;
 }
 
 .btn {
@@ -97,6 +120,13 @@ label {
   text-align: left;
   font-weight: 600;
   margin: 18px 0 6px;
+}
+
+label .opcional {
+  font-weight: 400;
+  font-style: italic;
+  color: #757575;
+  font-size: 0.85rem;
 }
 
 input[type="text"],
@@ -155,6 +185,16 @@ textarea {
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 22px;
   text-align: left;
+}
+
+.contador-seleccion {
+  position: sticky;
+  top: 0;
+  background: var(--fondo);
+  padding: 10px 0;
+  font-weight: 600;
+  color: var(--azul-oscuro);
+  z-index: 5;
 }
 
 .tarjeta {
@@ -221,19 +261,45 @@ textarea {
 .referencia {
   flex: 0 0 220px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
-.referencia img {
+.referencia-item img {
   width: 100%;
   border-radius: var(--radio);
   border: 1px solid #ddd;
 }
-.referencia .desc {
+.referencia-item .desc {
   font-size: 0.85rem;
   color: #555;
   margin-top: 8px;
 }
 
+/* ---------- Resumen del pedido (página COSTO) ---------- */
+.resumen-pedido {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #ddd;
+  border-radius: var(--radio);
+  overflow: hidden;
+  margin: 10px 0 26px;
+}
+.resumen-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-top: 1px solid #eee;
+  font-size: 0.92rem;
+}
+.resumen-item:first-child { border-top: none; }
+.resumen-item .nombre { font-weight: 600; }
+.resumen-item .detalle-linea { color: #666; font-size: 0.85rem; }
+.resumen-item .valor { font-weight: 700; color: var(--azul); white-space: nowrap; }
+
 @media (max-width: 640px) {
   .con-referencia { flex-direction: column-reverse; }
-  .referencia { flex: none; width: 100%; max-width: 260px; margin: 0 auto 10px; }
+  .referencia { flex: none; width: 100%; max-width: 260px; margin: 0 auto 10px; flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .referencia-item { width: 47%; }
 }

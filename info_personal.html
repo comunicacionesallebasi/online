@@ -48,8 +48,7 @@
     // Indicativos telefónicos. Colombia va primero y queda seleccionado
     // por defecto; el valor de cada opción es solo el número del
     // indicativo (sin "+"), que se pega directo al teléfono que escriba
-    // el cliente, igual al formato que ya usa el resto del sistema
-    // (ej. 573001234567).
+    // el cliente (ej. 573001234567).
     const INDICATIVOS = [
       { pais: "Colombia", cod: "57" },
       { pais: "México", cod: "52" },
@@ -95,7 +94,7 @@
     cargarIndicativos();
 
     const pedido = getPedido();
-    if (!pedido.codigoPrenda) {
+    if (!pedido.itemsDetalle || pedido.itemsDetalle.length === 0) {
       irA("index.html");
     }
     pintarReferencia("referencia");
@@ -105,13 +104,20 @@
       irA("index.html");
     }
 
+    // Evita que un doble clic (o un reintento manual del cliente mientras
+    // el primer envío sigue en curso) dispare dos peticiones en paralelo.
+    let enviando = false;
+
     document.getElementById("formPersonal").addEventListener("submit", async (e) => {
       e.preventDefault();
+      if (enviando) return;
+      enviando = true;
+
       const btn = document.getElementById("btnAceptar");
       btn.disabled = true;
       btn.textContent = "Enviando...";
 
-      const datosFinales = setPedido({
+      const datosPersonales = setPedido({
         nombreCompleto: document.getElementById("nombre").value.trim(),
         numeroDocumento: document.getElementById("documento").value.trim(),
         correo: document.getElementById("correo").value.trim(),
@@ -119,14 +125,27 @@
         direccionEnvio: document.getElementById("direccion").value.trim()
       });
 
+      const payload = {
+        idempotencyKey: getIdempotencyKey(),
+        artista: datosPersonales.artista,
+        nombreCompleto: datosPersonales.nombreCompleto,
+        numeroDocumento: datosPersonales.numeroDocumento,
+        correo: datosPersonales.correo,
+        telefono: datosPersonales.telefono,
+        ciudadEnvio: datosPersonales.ciudadEnvio,
+        direccionEnvio: datosPersonales.direccionEnvio,
+        items: datosPersonales.itemsDetalle
+      };
+
       try {
-        const resultado = await apiPost(datosFinales);
-        setPedido({ valorTotal: resultado.valorTotal, valorUnitario: resultado.valorUnitario, idPedido: resultado.idPedido });
+        const resultado = await apiPost(payload);
+        setPedido({ valorTotal: resultado.valorTotal, idPedido: resultado.idPedido, resumenItems: resultado.items });
         irA("costo.html");
       } catch (err) {
-        alert("Hubo un problema al registrar tu pedido. Intenta de nuevo.");
+        alert("Hubo un problema al registrar tu pedido. Por favor intenta de nuevo en unos segundos; si el problema persiste, escríbenos por WhatsApp con tu nombre para verificar si ya quedó registrado.");
         btn.disabled = false;
         btn.textContent = "ACEPTAR";
+        enviando = false;
       }
     });
   </script>
