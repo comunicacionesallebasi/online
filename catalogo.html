@@ -10,8 +10,8 @@
   <img class="logo" src="assets/logo_allebasi.jpg" alt="Allebasi">
   <div class="contenedor ancho">
     <h1 id="titulo">Catálogo</h1>
-    <p class="texto">Puedes escoger hasta 3 prendas distintas de esta colección para el mismo pedido.</p>
-    <div class="contador-seleccion" id="contador">0 de 3 prendas seleccionadas</div>
+    <p class="texto" id="aviso-seleccion"></p>
+    <div class="contador-seleccion" id="contador"></div>
     <div id="grid" class="grid-catalogo">
       <p class="estado">Cargando prendas...</p>
     </div>
@@ -35,7 +35,11 @@
       irA("index.html");
     }
 
-    // Selección en curso: hasta 3 prendas. Se guarda en memoria mientras
+    document.getElementById("aviso-seleccion").textContent =
+      "Puedes escoger hasta " + MAX_PRENDAS + " prendas distintas de esta colección para el mismo pedido.";
+    actualizarContador();
+
+    // Selección en curso: hasta MAX_PRENDAS prendas. Se guarda en memoria mientras
     // el cliente navega esta página y se persiste en sessionStorage al
     // presionar Continuar.
     let seleccionados = []; // [{imagen, enlaceOriginal, nombrePrenda, codigoPrenda, precio}]
