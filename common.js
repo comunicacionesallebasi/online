@@ -1,7 +1,7 @@
 /* Funciones compartidas por todas las páginas del flujo de compra */
 
 const STORAGE_KEY = "allebasi_pedido";
-const MAX_PRENDAS = 3;
+const MAX_PRENDAS = 10;
 
 function getPedido() {
   try {
@@ -101,7 +101,7 @@ function formatoMoneda(valor) {
 }
 
 // Pinta en la barra lateral las imágenes de TODAS las prendas elegidas
-// en el catálogo (hasta 3). Se usa en INFO PERSONAL, donde ya se
+// en el catálogo (hasta 10). Se usa en INFO PERSONAL, donde ya se
 // respondieron las preguntas de todas y sirve como resumen visual.
 function pintarReferencia(contenedorId) {
   const pedido = getPedido();
