@@ -35,14 +35,14 @@
       irA("index.html");
     }
 
-    document.getElementById("aviso-seleccion").textContent =
-      "Puedes escoger hasta " + MAX_PRENDAS + " prendas distintas de esta colección para el mismo pedido.";
-    actualizarContador();
-
     // Selección en curso: hasta MAX_PRENDAS prendas. Se guarda en memoria mientras
     // el cliente navega esta página y se persiste en sessionStorage al
     // presionar Continuar.
     let seleccionados = []; // [{imagen, enlaceOriginal, nombrePrenda, codigoPrenda, precio}]
+
+    document.getElementById("aviso-seleccion").textContent =
+      "Puedes escoger hasta " + MAX_PRENDAS + " prendas distintas de esta colección para el mismo pedido.";
+    actualizarContador();
 
     function actualizarContador() {
       document.getElementById("contador").textContent = seleccionados.length + " de " + MAX_PRENDAS + " prendas seleccionadas";
