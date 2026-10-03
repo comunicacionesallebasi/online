@@ -85,6 +85,13 @@
           }
 
           item.productos.forEach(function(prod) {
+            // ── Contenedor por producto (agrupa label + selectores) ──
+            // Así los selectores quedan visualmente unidos al producto
+            // y el borde separador aparece encima del conjunto, no
+            // entre la info y los botones de talla/color.
+            const wrapper = document.createElement("div");
+            wrapper.className = "produto-wrapper";
+
             // ── Fila principal: info + checkbox ──────────────────────
             // Usamos <label> para el área clickeable del checkbox.
             // Los selectores de talla/color van FUERA del <label> para
@@ -128,7 +135,7 @@
 
             fila.appendChild(info);
             fila.appendChild(check);
-            cuerpo.appendChild(fila);
+            wrapper.appendChild(fila);
 
             // ── Selector de TALLA ──────────────────────────────────
             // Fuera del <label> para que los botones no afecten el checkbox.
@@ -161,7 +168,7 @@
                 });
                 tallaSelDiv.appendChild(btn);
               });
-              cuerpo.appendChild(tallaSelDiv);
+              wrapper.appendChild(tallaSelDiv);
             }
 
             // ── Selector de COLOR ──────────────────────────────────
@@ -194,7 +201,7 @@
                 });
                 colorSelDiv.appendChild(btn);
               });
-              cuerpo.appendChild(colorSelDiv);
+              wrapper.appendChild(colorSelDiv);
             }
 
             // ── Selector de HORMA ──────────────────────────────────
@@ -227,8 +234,11 @@
                 });
                 hormaSelDiv.appendChild(btn);
               });
-              cuerpo.appendChild(hormaSelDiv);
+              wrapper.appendChild(hormaSelDiv);
             }
+
+            // Agrega el wrapper completo (info + selectores) al cuerpo
+            cuerpo.appendChild(wrapper);
 
             // ── Lógica del checkbox ────────────────────────────────
             check.addEventListener("change", function() {
