@@ -213,6 +213,15 @@ textarea {
   background: #f2f2f2;
 }
 
+/* Reproductor de video embebido desde Google Drive */
+.tarjeta-iframe {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border: none;
+  background: #000;
+  display: block;
+}
+
 .tarjeta .cuerpo { padding: 12px 14px 16px; }
 
 /* Contenedor de cada producto + sus selectores — lleva el borde separador */
