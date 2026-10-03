@@ -303,3 +303,68 @@ textarea {
   .referencia { flex: none; width: 100%; max-width: 260px; margin: 0 auto 10px; flex-direction: row; flex-wrap: wrap; justify-content: center; }
   .referencia-item { width: 47%; }
 }
+
+/* ---------- Descripción completa en la tarjeta del catálogo ---------- */
+.detalle-completo {
+  font-size: 0.8rem;
+  color: #555;
+  line-height: 1.45;
+  margin: 4px 0 2px;
+  /* Respeta los \n que vienen del textContent sin necesitar <br> */
+  white-space: pre-line;
+}
+
+/* ---------- Selectores de talla y color en el catálogo ---------- */
+.selector-grupo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 10px;
+  border-top: 1px solid #eee;
+}
+
+.sel-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--azul-oscuro);
+  white-space: nowrap;
+  margin-right: 2px;
+}
+
+/* Botón de opción (talla / color) — NO extiende .btn para evitar conflictos */
+.btn-opcion {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  border: 1.5px solid var(--azul);
+  border-radius: 6px;
+  background: var(--blanco);
+  color: var(--azul);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  /* Anula herencias globales de <button> */
+  width: auto;
+  margin: 0;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.btn-opcion:hover {
+  background: #eef6f8;
+}
+
+.btn-opcion.activo {
+  background: var(--azul);
+  color: var(--blanco);
+}
+
+/* Campo de formulario pre-rellenado desde la selección del catálogo */
+.pre-seleccionado {
+  background: #eef6f8;
+  border-color: var(--azul);
+}

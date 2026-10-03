@@ -35,20 +35,19 @@
       irA("index.html");
     }
 
-    // Selección en curso: hasta MAX_PRENDAS prendas. Se guarda en memoria mientras
-    // el cliente navega esta página y se persiste en sessionStorage al
-    // presionar Continuar.
-    let seleccionados = []; // [{imagen, enlaceOriginal, nombrePrenda, codigoPrenda, precio}]
+    // Selección en curso: hasta MAX_PRENDAS prendas.
+    let seleccionados = [];
 
     document.getElementById("aviso-seleccion").textContent =
       "Puedes escoger hasta " + MAX_PRENDAS + " prendas distintas de esta colección para el mismo pedido.";
     actualizarContador();
 
     function actualizarContador() {
-      document.getElementById("contador").textContent = seleccionados.length + " de " + MAX_PRENDAS + " prendas seleccionadas";
+      document.getElementById("contador").textContent =
+        seleccionados.length + " de " + MAX_PRENDAS + " prendas seleccionadas";
       document.getElementById("btnContinuar").disabled = seleccionados.length === 0;
       // Deshabilita los checkboxes no marcados si ya se llegó al máximo.
-      document.querySelectorAll('input[name="seleccion"]').forEach(chk => {
+      document.querySelectorAll('input[name="seleccion"]').forEach(function(chk) {
         if (!chk.checked) {
           chk.disabled = seleccionados.length >= MAX_PRENDAS;
         }
@@ -64,7 +63,8 @@
           return;
         }
         grid.innerHTML = "";
-        data.items.forEach((item) => {
+
+        data.items.forEach(function(item) {
           const tarjeta = document.createElement("div");
           tarjeta.className = "tarjeta";
 
@@ -77,28 +77,186 @@
           cuerpo.className = "cuerpo";
 
           if (item.productos.length === 0) {
-            cuerpo.innerHTML = '<p class="estado" style="padding:0">Sin detalle de producto</p>';
+            const pEl = document.createElement("p");
+            pEl.className = "estado";
+            pEl.style.padding = "0";
+            pEl.textContent = "Sin detalle de producto";
+            cuerpo.appendChild(pEl);
           }
 
-          item.productos.forEach((prod) => {
+          item.productos.forEach(function(prod) {
+            // ── Fila principal: info + checkbox ──────────────────────
+            // Usamos <label> para el área clickeable del checkbox.
+            // Los selectores de talla/color van FUERA del <label> para
+            // que sus botones no disparen el checkbox al hacer clic.
             const fila = document.createElement("label");
-            fila.className = "producto";
+            fila.className = "produto";
 
+            // Info textual
             const info = document.createElement("div");
             info.className = "info";
-            info.innerHTML = `
-              <div class="nombre">${prod.nombre || "Prenda"}</div>
-              ${prod.detalle ? `<div class="detalle">${prod.detalle}</div>` : ""}
-              <div class="precio">${formatoMoneda(prod.precio)}</div>
-              <div class="codigo">Código: ${prod.codigo}</div>`;
+
+            const nombreEl = document.createElement("div");
+            nombreEl.className = "nombre";
+            nombreEl.textContent = prod.nombre || "Prenda";
+            info.appendChild(nombreEl);
+
+            // Descripción completa (todas las líneas relevantes del bloque)
+            if (prod.detalle) {
+              const detalleEl = document.createElement("div");
+              detalleEl.className = "detalle detalle-completo";
+              // textContent es seguro (no interpreta HTML) y white-space:pre-line
+              // en CSS renderiza los saltos de línea correctamente.
+              detalleEl.textContent = prod.detalle;
+              info.appendChild(detalleEl);
+            }
+
+            const precioEl = document.createElement("div");
+            precioEl.className = "precio";
+            precioEl.textContent = formatoMoneda(prod.precio);
+            info.appendChild(precioEl);
+
+            const codigoEl = document.createElement("div");
+            codigoEl.className = "codigo";
+            codigoEl.textContent = "Código: " + prod.codigo;
+            info.appendChild(codigoEl);
 
             const check = document.createElement("input");
             check.type = "checkbox";
             check.name = "seleccion";
             check.value = prod.codigo;
 
-            check.addEventListener("change", () => {
+            fila.appendChild(info);
+            fila.appendChild(check);
+            cuerpo.appendChild(fila);
+
+            // ── Selector de TALLA ──────────────────────────────────
+            // Fuera del <label> para que los botones no afecten el checkbox.
+            var tallaSelDiv = null;
+            if (prod.tallas && prod.tallas.length > 0) {
+              tallaSelDiv = document.createElement("div");
+              tallaSelDiv.className = "selector-grupo";
+
+              const tallaLbl = document.createElement("span");
+              tallaLbl.className = "sel-label";
+              tallaLbl.textContent = "Talla:";
+              tallaSelDiv.appendChild(tallaLbl);
+
+              prod.tallas.forEach(function(t) {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "btn-opcion";
+                btn.textContent = t;
+                btn.addEventListener("click", function() {
+                  tallaSelDiv.querySelectorAll(".btn-opcion").forEach(function(b) {
+                    b.classList.remove("activo");
+                  });
+                  btn.classList.add("activo");
+                  tallaSelDiv.dataset.seleccionado = t;
+                  // Si la prenda ya está en el carrito, actualiza la talla
+                  const existIdx = seleccionados.findIndex(function(s) {
+                    return s.codigoPrenda === prod.codigo;
+                  });
+                  if (existIdx >= 0) seleccionados[existIdx].talla = t;
+                });
+                tallaSelDiv.appendChild(btn);
+              });
+              cuerpo.appendChild(tallaSelDiv);
+            }
+
+            // ── Selector de COLOR ──────────────────────────────────
+            var colorSelDiv = null;
+            if (prod.colores && prod.colores.length > 0) {
+              colorSelDiv = document.createElement("div");
+              colorSelDiv.className = "selector-grupo";
+
+              const colorLbl = document.createElement("span");
+              colorLbl.className = "sel-label";
+              colorLbl.textContent = "Color:";
+              colorSelDiv.appendChild(colorLbl);
+
+              prod.colores.forEach(function(c) {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "btn-opcion";
+                btn.textContent = c;
+                btn.addEventListener("click", function() {
+                  colorSelDiv.querySelectorAll(".btn-opcion").forEach(function(b) {
+                    b.classList.remove("activo");
+                  });
+                  btn.classList.add("activo");
+                  colorSelDiv.dataset.seleccionado = c;
+                  // Si la prenda ya está en el carrito, actualiza el color
+                  const existIdx = seleccionados.findIndex(function(s) {
+                    return s.codigoPrenda === prod.codigo;
+                  });
+                  if (existIdx >= 0) seleccionados[existIdx].color = c;
+                });
+                colorSelDiv.appendChild(btn);
+              });
+              cuerpo.appendChild(colorSelDiv);
+            }
+
+            // ── Selector de HORMA ──────────────────────────────────
+            var hormaSelDiv = null;
+            if (prod.hormas && prod.hormas.length > 1) {
+              // Solo muestra selector si hay más de una horma (si es única, ya está implícita)
+              hormaSelDiv = document.createElement("div");
+              hormaSelDiv.className = "selector-grupo";
+
+              const hormaLbl = document.createElement("span");
+              hormaLbl.className = "sel-label";
+              hormaLbl.textContent = "Horma:";
+              hormaSelDiv.appendChild(hormaLbl);
+
+              prod.hormas.forEach(function(h) {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "btn-opcion";
+                btn.textContent = h;
+                btn.addEventListener("click", function() {
+                  hormaSelDiv.querySelectorAll(".btn-opcion").forEach(function(b) {
+                    b.classList.remove("activo");
+                  });
+                  btn.classList.add("activo");
+                  hormaSelDiv.dataset.seleccionado = h;
+                  const existIdx = seleccionados.findIndex(function(s) {
+                    return s.codigoPrenda === prod.codigo;
+                  });
+                  if (existIdx >= 0) seleccionados[existIdx].horma = h;
+                });
+                hormaSelDiv.appendChild(btn);
+              });
+              cuerpo.appendChild(hormaSelDiv);
+            }
+
+            // ── Lógica del checkbox ────────────────────────────────
+            check.addEventListener("change", function() {
               if (check.checked) {
+                // Validar talla si hay opciones disponibles
+                const talla = tallaSelDiv ? (tallaSelDiv.dataset.seleccionado || "") : "";
+                if (prod.tallas && prod.tallas.length > 0 && !talla) {
+                  alert("Por favor selecciona una talla antes de agregar esta prenda al pedido.");
+                  check.checked = false;
+                  return;
+                }
+                // Validar color si hay opciones disponibles
+                const color = colorSelDiv ? (colorSelDiv.dataset.seleccionado || "") : "";
+                if (prod.colores && prod.colores.length > 0 && !color) {
+                  alert("Por favor selecciona un color antes de agregar esta prenda al pedido.");
+                  check.checked = false;
+                  return;
+                }
+                // Validar horma si hay más de una opción
+                const horma = hormaSelDiv
+                  ? (hormaSelDiv.dataset.seleccionado || "")
+                  : (prod.hormas && prod.hormas.length === 1 ? prod.hormas[0] : "");
+                if (prod.hormas && prod.hormas.length > 1 && !horma) {
+                  alert("Por favor selecciona una horma antes de agregar esta prenda al pedido.");
+                  check.checked = false;
+                  return;
+                }
+                // Verificar límite de prendas
                 if (seleccionados.length >= MAX_PRENDAS) {
                   check.checked = false;
                   return;
@@ -108,17 +266,19 @@
                   enlacePrenda: item.enlaceOriginal,
                   nombrePrenda: prod.nombre || "Prenda",
                   codigoPrenda: prod.codigo,
-                  valorUnitarioEstimado: prod.precio
+                  valorUnitarioEstimado: prod.precio,
+                  talla: talla,
+                  color: color,
+                  horma: horma,
+                  logoEnPedreria: prod.logoEnPedreria || false
                 });
               } else {
-                seleccionados = seleccionados.filter(s => s.codigoPrenda !== prod.codigo);
+                seleccionados = seleccionados.filter(function(s) {
+                  return s.codigoPrenda !== prod.codigo;
+                });
               }
               actualizarContador();
             });
-
-            fila.appendChild(info);
-            fila.appendChild(check);
-            cuerpo.appendChild(fila);
           });
 
           tarjeta.appendChild(cuerpo);
@@ -130,7 +290,7 @@
     }
     cargarCatalogo();
 
-    document.getElementById("btnContinuar").addEventListener("click", () => {
+    document.getElementById("btnContinuar").addEventListener("click", function() {
       if (seleccionados.length === 0) return;
       setPedido({ items: seleccionados });
       irA("preacuerdo.html");
