@@ -68,24 +68,21 @@
           const tarjeta = document.createElement("div");
           tarjeta.className = "tarjeta";
 
-          // Detecta si el enlace apunta a un archivo de Drive (video)
-          // o a una URL de imagen directa.
-          // Drive videos: drive.google.com/file/d/{ID}/view  → embed con /preview
-          // Drive imágenes directas: drive.google.com/uc?id=... → <img> normal
-          var driveVideoMatch = item.imagen && item.imagen.match(/drive\.google\.com\/file\/d\/([^\/\?]+)/);
-          if (driveVideoMatch) {
-            var iframe = document.createElement("iframe");
-            iframe.src = "https://drive.google.com/file/d/" + driveVideoMatch[1] + "/preview";
-            iframe.className = "tarjeta-iframe";
-            iframe.setAttribute("frameborder", "0");
-            iframe.setAttribute("allowfullscreen", "true");
-            iframe.allow = "autoplay";
-            tarjeta.appendChild(iframe);
-          } else {
-            var img = document.createElement("img");
-            img.src = item.imagen;
-            img.alt = artista;
-            tarjeta.appendChild(img);
+          // Imagen de la tarjeta (siempre se muestra el thumbnail)
+          var imgEl = document.createElement("img");
+          imgEl.src = item.imagen;
+          imgEl.alt = artista;
+          tarjeta.appendChild(imgEl);
+
+          // Si el archivo es un video, agrega botón "▶ Ver video" debajo de la imagen
+          if (item.video) {
+            var videoBtn = document.createElement("a");
+            videoBtn.href = item.video;
+            videoBtn.target = "_blank";
+            videoBtn.rel = "noopener noreferrer";
+            videoBtn.className = "btn-video";
+            videoBtn.textContent = "▶ Ver video";
+            tarjeta.appendChild(videoBtn);
           }
 
           const cuerpo = document.createElement("div");
