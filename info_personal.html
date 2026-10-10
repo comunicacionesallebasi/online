@@ -18,6 +18,9 @@
         <label for="documento">Número de documento:</label>
         <input type="text" id="documento" required>
 
+        <label for="usuarioIG">Usuario de Instagram: <span class="opcional">(opcional — para participar en el sorteo)</span></label>
+        <input type="text" id="usuarioIG" placeholder="@tuusuario">
+
         <label for="correo">Correo electrónico:</label>
         <input type="email" id="correo" required>
 
@@ -123,6 +126,7 @@
       const datosPersonales = setPedido({
         nombreCompleto: document.getElementById("nombre").value.trim(),
         numeroDocumento: document.getElementById("documento").value.trim(),
+        usuarioIG: document.getElementById("usuarioIG").value.trim(),
         correo: document.getElementById("correo").value.trim(),
         ciudadEnvio: document.getElementById("ciudad").value.trim(),
         telefono: document.getElementById("indicativo").value + document.getElementById("telefono").value.trim().replace(/\D/g, ""),
@@ -134,6 +138,7 @@
         artista: datosPersonales.artista,
         nombreCompleto: datosPersonales.nombreCompleto,
         numeroDocumento: datosPersonales.numeroDocumento,
+        usuarioIG: datosPersonales.usuarioIG,
         correo: datosPersonales.correo,
         telefono: datosPersonales.telefono,
         ciudadEnvio: datosPersonales.ciudadEnvio,
