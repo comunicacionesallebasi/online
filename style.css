@@ -388,3 +388,43 @@ textarea {
   letter-spacing: .3px;
 }
 .btn-video:hover { background: var(--azul-oscuro); }
+
+/* ========== AGOTADO ========== */
+
+/* Badge rojo que aparece encima de los detalles del producto */
+.agotado-badge {
+  display: block;
+  background: #fff0f0;
+  color: #c62828;
+  font-weight: 900;
+  font-size: 1.1rem;
+  text-align: center;
+  padding: 7px 12px;
+  letter-spacing: 3px;
+  border-bottom: 2px solid #ffcdd2;
+}
+
+/* Atenúa info y selectores del producto agotado */
+.produto-wrapper.agotado .produto {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.produto-wrapper.agotado .selector-grupo {
+  opacity: 0.45;
+}
+
+/* Los botones de talla/color/horma en productos agotados muestran cursor bloqueado */
+.produto-wrapper.agotado .btn-opcion {
+  cursor: not-allowed;
+}
+
+.produto-wrapper.agotado .btn-opcion:hover {
+  background: var(--blanco); /* sin efecto hover */
+  color: var(--azul);
+}
+
+/* El checkbox agotado también muestra cursor bloqueado */
+.produto-wrapper.agotado input[type="checkbox"] {
+  cursor: not-allowed;
+}
