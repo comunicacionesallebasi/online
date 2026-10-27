@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Allebasi - Catálogo</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <img class="logo" src="assets/logo_allebasi.jpg" alt="Allebasi">
+  <div class="contenedor">
+    <div id="lista" class="menu-lista">
+      <p class="estado">Cargando catálogos...</p>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="common.js"></script>
+  <script>
+    limpiarPedido(); // el menú siempre empieza un pedido nuevo
+
+    async function cargarMenu() {
+      const cont = document.getElementById("lista");
+      try {
+        // VERSION 5: usa apiGetCached → sessionStorage + caché en servidor
+        const data = await apiGetCached({ action: "menu" });
+        if (!data.items || data.items.length === 0) {
+          cont.innerHTML = '<p class="estado">No hay catálogos disponibles por ahora.</p>';
+          return;
+        }
+        cont.innerHTML = "";
+        data.items.forEach(item => {
+          const btn = document.createElement("button");
+          btn.className = "btn";
+          btn.textContent = item.nombre;
+          btn.onclick = () => {
+            setPedido({ artista: item.nombre });
+            irA("catalogo.html");
+          };
+          cont.appendChild(btn);
+        });
+
+        // VERSION 5: precarga todos los catálogos en segundo plano.
+        // Cuando el usuario haga clic en un catálogo, la respuesta ya
+        // está guardada en sessionStorage → apertura casi instantánea.
+        prefetchCatalogs(data.items);
+
+      } catch (e) {
+        cont.innerHTML = '<p class="estado">No se pudo cargar el menú. Intenta de nuevo más tarde.</p>';
+      }
+    }
+
+    /**
+     * Precarga los catálogos en segundo plano, escalonados cada 600 ms
+     * para no saturar el servidor con peticiones simultáneas.
+     * Los resultados se guardan en sessionStorage vía apiGetCached.
+     */
+    function prefetchCatalogs(items) {
+      items.forEach(function(item, i) {
+        setTimeout(function() {
+          apiGetCached({ action: "catalog", artist: item.nombre })
+            .catch(function() {}); // silencioso: es solo una optimización
+        }, 800 + i * 600);
+      });
+    }
+
+    cargarMenu();
+  </script>
+</body>
+</html>

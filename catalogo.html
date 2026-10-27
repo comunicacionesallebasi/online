@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Allebasi - Catálogo</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <img class="logo" src="assets/logo_allebasi.jpg" alt="Allebasi">
+  <div class="contenedor ancho">
+    <h1 id="titulo">Catálogo</h1>
+    <p class="texto" id="aviso-seleccion"></p>
+    <div class="contador-seleccion" id="contador"></div>
+    <div id="grid" class="grid-catalogo">
+      <p class="estado">Cargando prendas...</p>
+    </div>
+  </div>
+
+  <div class="barra-continuar">
+    <div class="contenedor">
+      <button id="btnContinuar" class="btn" disabled>Continuar</button>
+      <button class="btn btn-secundario" onclick="irA('index.html')">Volver al menú</button>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="common.js"></script>
+  <script>
+    const pedido = getPedido();
+    const artista = pedido.artista;
+    document.getElementById("titulo").textContent = artista || "Catálogo";
+
+    if (!artista) {
+      irA("index.html");
+    }
+
+    // Selección en curso: hasta MAX_PRENDAS prendas.
+    let seleccionados = [];
+
+    document.getElementById("aviso-seleccion").textContent =
+      "Puedes escoger hasta " + MAX_PRENDAS + " prendas distintas de esta colección para el mismo pedido.";
+    actualizarContador();
+
+    function actualizarContador() {
+      document.getElementById("contador").textContent =
+        seleccionados.length + " de " + MAX_PRENDAS + " prendas seleccionadas";
+      document.getElementById("btnContinuar").disabled = seleccionados.length === 0;
+      document.querySelectorAll('input[name="seleccion"]').forEach(function(chk) {
+        if (!chk.checked && !chk.dataset.agotado) {
+          chk.disabled = seleccionados.length >= MAX_PRENDAS;
+        }
+      });
+    }
+
+    async function cargarCatalogo() {
+      const grid = document.getElementById("grid");
+      try {
+        // VERSION 5: usa apiGetCached → si el index ya precargó este catálogo,
+        // la respuesta sale de sessionStorage en < 5 ms (sin llamada al servidor).
+        const data = await apiGetCached({ action: "catalog", artist: artista });
+        if (!data.items || data.items.length === 0) {
+          grid.innerHTML = '<p class="estado">No hay prendas disponibles para este catálogo.</p>';
+          return;
+        }
+        grid.innerHTML = "";
+
+        data.items.forEach(function(item) {
+          const tarjeta = document.createElement("div");
+          tarjeta.className = "tarjeta";
+
+          var imgEl = document.createElement("img");
+          imgEl.src = item.imagen;
+          imgEl.alt = artista;
+          tarjeta.appendChild(imgEl);
+
+          if (item.video) {
+            var videoBtn = document.createElement("a");
+            videoBtn.href = item.video;
+            videoBtn.target = "_blank";
+            videoBtn.rel = "noopener noreferrer";
+            videoBtn.className = "btn-video";
+            videoBtn.textContent = "▶ Ver video";
+            tarjeta.appendChild(videoBtn);
+          }
+
+          const cuerpo = document.createElement("div");
+          cuerpo.className = "cuerpo";
+
+          if (item.productos.length === 0) {
+            const pEl = document.createElement("p");
+            pEl.className = "estado";
+            pEl.style.padding = "0";
+            pEl.textContent = "Sin detalle de producto";
+            cuerpo.appendChild(pEl);
+          }
+
+          item.productos.forEach(function(prod) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "produto-wrapper";
+
+            if (prod.agotado) {
+              wrapper.classList.add("agotado");
+              const badge = document.createElement("div");
+              badge.className = "agotado-badge";
+              badge.textContent = "AGOTADO";
+              wrapper.appendChild(badge);
+            }
+
+            const fila = document.createElement("label");
+            fila.className = "produto";
+
+            if (prod.agotado) {
+              fila.addEventListener("click", function(e) {
+                e.preventDefault();
+                alert("Este artículo está agotado.");
+              });
+            }
+
+            const info = document.createElement("div");
+            info.className = "info";
+
+            const nombreEl = document.createElement("div");
+            nombreEl.className = "nombre";
+            nombreEl.textContent = prod.nombre || "Prenda";
+            info.appendChild(nombreEl);
+
+            if (prod.detalle) {
+              const detalleEl = document.createElement("div");
+              detalleEl.className = "detalle detalle-completo";
+              detalleEl.textContent = prod.detalle;
+              info.appendChild(detalleEl);
+            }
+
+            const precioEl = document.createElement("div");
+            precioEl.className = "precio";
+            precioEl.textContent = formatoMoneda(prod.precio);
+            info.appendChild(precioEl);
+
+            const codigoEl = document.createElement("div");
+            codigoEl.className = "codigo";
+            codigoEl.textContent = "Código: " + prod.codigo;
+            info.appendChild(codigoEl);
+
+            const check = document.createElement("input");
+            check.type = "checkbox";
+            check.name = "seleccion";
+            check.value = prod.codigo;
+
+            if (prod.agotado) {
+              check.disabled = true;
+              check.dataset.agotado = "1";
+            }
+
+            fila.appendChild(info);
+            fila.appendChild(check);
+            wrapper.appendChild(fila);
+
+            var tallaSelDiv = null;
+            if (prod.tallas && prod.tallas.length > 0) {
+              tallaSelDiv = document.createElement("div");
+              tallaSelDiv.className = "selector-grupo";
+
+              const tallaLbl = document.createElement("span");
+              tallaLbl.className = "sel-label";
+              tallaLbl.textContent = "Talla:";
+              tallaSelDiv.appendChild(tallaLbl);
+
+              prod.tallas.forEach(function(t) {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "btn-opcion";
+                btn.textContent = t;
+
+                if (prod.agotado) {
+                  btn.addEventListener("click", function() {
+                    alert("Este artículo está agotado.");
+                  });
+                } else {
+                  btn.addEventListener("click", function() {
+                    tallaSelDiv.querySelectorAll(".btn-opcion").forEach(function(b) {
+                      b.classList.remove("activo");
+                    });
+                    btn.classList.add("activo");
+                    tallaSelDiv.dataset.seleccionado = t;
+                    const existIdx = seleccionados.findIndex(function(s) {
+                      return s.codigoPrenda === prod.codigo;
+                    });
+                    if (existIdx >= 0) seleccionados[existIdx].talla = t;
+                  });
+                }
+                tallaSelDiv.appendChild(btn);
+              });
+              wrapper.appendChild(tallaSelDiv);
+            }
+
+            var colorSelDiv = null;
+            if (prod.colores && prod.colores.length > 0) {
+              colorSelDiv = document.createElement("div");
+              colorSelDiv.className = "selector-grupo";
+
+              const colorLbl = document.createElement("span");
+              colorLbl.className = "sel-label";
+              colorLbl.textContent = "Color:";
+              colorSelDiv.appendChild(colorLbl);
+
+              prod.colores.forEach(function(c) {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "btn-opcion";
+                btn.textContent = c;
+
+                if (prod.agotado) {
+                  btn.addEventListener("click", function() {
+                    alert("Este artículo está agotado.");
+                  });
+                } else {
+                  btn.addEventListener("click", function() {
+                    colorSelDiv.querySelectorAll(".btn-opcion").forEach(function(b) {
+                      b.classList.remove("activo");
+                    });
+                    btn.classList.add("activo");
+                    colorSelDiv.dataset.seleccionado = c;
+                    const existIdx = seleccionados.findIndex(function(s) {
+                      return s.codigoPrenda === prod.codigo;
+                    });
+                    if (existIdx >= 0) seleccionados[existIdx].color = c;
+                  });
+                }
+                colorSelDiv.appendChild(btn);
+              });
+              wrapper.appendChild(colorSelDiv);
+            }
+
+            var hormaSelDiv = null;
+            if (prod.hormas && prod.hormas.length > 1) {
+              hormaSelDiv = document.createElement("div");
+              hormaSelDiv.className = "selector-grupo";
+
+              const hormaLbl = document.createElement("span");
+              hormaLbl.className = "sel-label";
+              hormaLbl.textContent = "Horma:";
+              hormaSelDiv.appendChild(hormaLbl);
+
+              prod.hormas.forEach(function(h) {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "btn-opcion";
+                btn.textContent = h;
+
+                if (prod.agotado) {
+                  btn.addEventListener("click", function() {
+                    alert("Este artículo está agotado.");
+                  });
+                } else {
+                  btn.addEventListener("click", function() {
+                    hormaSelDiv.querySelectorAll(".btn-opcion").forEach(function(b) {
+                      b.classList.remove("activo");
+                    });
+                    btn.classList.add("activo");
+                    hormaSelDiv.dataset.seleccionado = h;
+                    const existIdx = seleccionados.findIndex(function(s) {
+                      return s.codigoPrenda === prod.codigo;
+                    });
+                    if (existIdx >= 0) seleccionados[existIdx].horma = h;
+                  });
+                }
+                hormaSelDiv.appendChild(btn);
+              });
+              wrapper.appendChild(hormaSelDiv);
+            }
+
+            cuerpo.appendChild(wrapper);
+
+            if (!prod.agotado) {
+              check.addEventListener("change", function() {
+                if (check.checked) {
+                  const talla = tallaSelDiv ? (tallaSelDiv.dataset.seleccionado || "") : "";
+                  if (prod.tallas && prod.tallas.length > 0 && !talla) {
+                    alert("Por favor selecciona una talla antes de agregar esta prenda al pedido.");
+                    check.checked = false;
+                    return;
+                  }
+                  const color = colorSelDiv ? (colorSelDiv.dataset.seleccionado || "") : "";
+                  if (prod.colores && prod.colores.length > 0 && !color) {
+                    alert("Por favor selecciona un color antes de agregar esta prenda al pedido.");
+                    check.checked = false;
+                    return;
+                  }
+                  const horma = hormaSelDiv
+                    ? (hormaSelDiv.dataset.seleccionado || "")
+                    : (prod.hormas && prod.hormas.length === 1 ? prod.hormas[0] : "");
+                  if (prod.hormas && prod.hormas.length > 1 && !horma) {
+                    alert("Por favor selecciona una horma antes de agregar esta prenda al pedido.");
+                    check.checked = false;
+                    return;
+                  }
+                  if (seleccionados.length >= MAX_PRENDAS) {
+                    check.checked = false;
+                    return;
+                  }
+                  seleccionados.push({
+                    imagen: item.imagen,
+                    enlacePrenda: item.enlaceOriginal,
+                    nombrePrenda: prod.nombre || "Prenda",
+                    codigoPrenda: prod.codigo,
+                    valorUnitarioEstimado: prod.precio,
+                    talla: talla,
+                    color: color,
+                    horma: horma,
+                    logoEnPedreria: prod.logoEnPedreria || false
+                  });
+                } else {
+                  seleccionados = seleccionados.filter(function(s) {
+                    return s.codigoPrenda !== prod.codigo;
+                  });
+                }
+                actualizarContador();
+              });
+            }
+          });
+
+          tarjeta.appendChild(cuerpo);
+          grid.appendChild(tarjeta);
+        });
+      } catch (e) {
+        grid.innerHTML = '<p class="estado">No se pudo cargar el catálogo. Intenta de nuevo.</p>';
+      }
+    }
+    cargarCatalogo();
+
+    document.getElementById("btnContinuar").addEventListener("click", function() {
+      if (seleccionados.length === 0) return;
+      setPedido({ items: seleccionados });
+      irA("preacuerdo.html");
+    });
+  </script>
+</body>
+</html>
