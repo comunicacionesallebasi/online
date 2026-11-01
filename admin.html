@@ -372,8 +372,9 @@ function clearToken() { sessionStorage.removeItem(TOKEN_KEY); }
 async function apiAdminGet(params) {
   const url = new URL(API_URL);
   params.token = getToken();
+  params._t = Date.now(); // evita caché del navegador
   Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
-  const resp = await fetch(url.toString());
+  const resp = await fetch(url.toString(), { cache: 'no-store' });
   const data = await resp.json();
   if (data.error) throw new Error(data.error);
   return data;
