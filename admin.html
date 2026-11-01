@@ -277,10 +277,11 @@ hr { border: none; border-top: 1.5px solid var(--border); margin: 20px 0; }
       <div class="form-group">
         <label>Imagen de la prenda</label>
         <div class="img-upload-area" onclick="document.getElementById('prenda-img-inp').click()">
-          <p>📷 Haz clic para seleccionar una imagen</p>
-          <input type="file" id="prenda-img-inp" accept="image/*" style="display:none" onchange="previewPrendaImg(this)">
+          <p>📷 Haz clic para seleccionar una imagen o video</p>
+          <input type="file" id="prenda-img-inp" accept="image/*,video/*" style="display:none" onchange="previewPrendaImg(this)">
         </div>
         <img id="prenda-img-preview" src="" alt="" style="display:none;max-width:140px;margin-top:10px;border-radius:6px;">
+        <video id="prenda-vid-preview" controls style="display:none;max-width:220px;margin-top:10px;border-radius:6px;"></video>
       </div>
       <div class="form-group">
         <label>Descripción</label>
@@ -317,10 +318,11 @@ hr { border: none; border-top: 1.5px solid var(--border); margin: 20px 0; }
     <div class="form-group">
       <label>Imagen</label>
       <div class="img-upload-area" onclick="document.getElementById('mp-img-inp').click()">
-        <p>📷 Seleccionar imagen</p>
-        <input type="file" id="mp-img-inp" accept="image/*" style="display:none" onchange="previewMpImg(this)">
+        <p>📷 Seleccionar imagen o video</p>
+        <input type="file" id="mp-img-inp" accept="image/*,video/*" style="display:none" onchange="previewMpImg(this)">
       </div>
       <img id="mp-img-preview" src="" alt="" style="display:none;max-width:120px;margin-top:10px;border-radius:6px;">
+      <video id="mp-vid-preview" controls style="display:none;max-width:220px;margin-top:10px;border-radius:6px;"></video>
     </div>
     <div class="form-group">
       <label>Descripción</label>
@@ -608,7 +610,7 @@ async function renombrarCatalogo() {
 // ─── Cambiar imagen ────────────────────────────────────────
 function cambiarImagen(codigo, catalogo) {
   const inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = 'image/*';
+  inp.type = 'file'; inp.accept = 'image/*,video/*';
   inp.onchange = async () => {
     const file = inp.files[0];
     if (!file) return;
@@ -656,8 +658,16 @@ function previewMpImg(inp) {
   const f = inp.files[0];
   if (!f) return;
   const img = document.getElementById('mp-img-preview');
-  img.src = URL.createObjectURL(f);
-  img.style.display = 'block';
+  const vid = document.getElementById('mp-vid-preview');
+  if (f.type.startsWith('video/')) {
+    img.style.display = 'none';
+    vid.src = URL.createObjectURL(f);
+    vid.style.display = 'block';
+  } else {
+    vid.style.display = 'none';
+    img.src = URL.createObjectURL(f);
+    img.style.display = 'block';
+  }
 }
 
 async function guardarNuevaPrenda() {
@@ -765,8 +775,8 @@ function agregarFilaNueva() {
     </div>
     <div class="form-group">
       <label>Imagen</label>
-      <div class="img-upload-area" onclick="this.nextElementSibling.click()">📷 Seleccionar imagen</div>
-      <input type="file" accept="image/*" style="display:none" onchange="previewFilaNueva(this, ${idx})">
+      <div class="img-upload-area" onclick="this.nextElementSibling.click()">📷 Seleccionar imagen o video</div>
+      <input type="file" accept="image/*,video/*" style="display:none" onchange="previewFilaNueva(this, ${idx})">
       <img style="display:none;max-width:100px;margin-top:8px;border-radius:6px;" alt="">
     </div>
     <div class="form-group">
@@ -790,8 +800,21 @@ function quitarFilaNueva(idx, btn) {
 function previewFilaNueva(inp, idx) {
   const f = inp.files[0]; if (!f) return;
   const img = inp.nextElementSibling;
-  img.src = URL.createObjectURL(f);
-  img.style.display = 'block';
+  if (f.type.startsWith('video/')) {
+    img.style.display = 'none';
+    // Mostrar pequeña etiqueta de video
+    let vLabel = inp.parentElement.querySelector('.vid-label');
+    if (!vLabel) {
+      vLabel = document.createElement('span');
+      vLabel.className = 'vid-label';
+      vLabel.style.cssText = 'display:inline-block;margin-top:8px;padding:4px 8px;background:#e8a020;color:#fff;border-radius:4px;font-size:.8rem;';
+      inp.parentElement.appendChild(vLabel);
+    }
+    vLabel.textContent = '🎬 ' + f.name;
+  } else {
+    img.src = URL.createObjectURL(f);
+    img.style.display = 'block';
+  }
   fileToBase64(f, 1200).then(({ base64, mime }) => {
     _nuevasPrendas[idx] = { base64, mime, fileName: f.name };
   });
@@ -856,8 +879,16 @@ async function crearCatalogoNuevo() {
 function previewPrendaImg(inp) {
   const f = inp.files[0]; if (!f) return;
   const img = document.getElementById('prenda-img-preview');
-  img.src = URL.createObjectURL(f);
-  img.style.display = 'block';
+  const vid = document.getElementById('prenda-vid-preview');
+  if (f.type.startsWith('video/')) {
+    img.style.display = 'none';
+    vid.src = URL.createObjectURL(f);
+    vid.style.display = 'block';
+  } else {
+    vid.style.display = 'none';
+    img.src = URL.createObjectURL(f);
+    img.style.display = 'block';
+  }
 }
 
 async function agregarPrendaExistente() {
@@ -917,6 +948,18 @@ function escapar(str) {
  */
 function fileToBase64(file, maxPx = 1200) {
   return new Promise((resolve, reject) => {
+    // Videos: leer directamente como base64, sin redimensionar
+    if (file.type.startsWith('video/')) {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = evt => {
+        const base64 = evt.target.result.split(',')[1];
+        resolve({ base64, mime: file.type });
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+    // Imágenes: redimensionar con canvas
     const reader = new FileReader();
     reader.onerror = reject;
     reader.onload = evt => {
