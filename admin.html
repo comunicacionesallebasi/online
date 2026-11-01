@@ -236,8 +236,8 @@ hr { border: none; border-top: 1.5px solid var(--border); margin: 20px 0; }
         <input type="text" id="dup-nombre" placeholder="Ej: ARTISTA - TEMPORADA 2">
       </div>
       <div class="form-group">
-        <label>Número del catálogo</label>
-        <input type="number" id="dup-numero" placeholder="Ej: 25" min="1">
+        <label>Número del catálogo <span style="font-weight:400;color:var(--muted);">(solo números disponibles)</span></label>
+        <select id="dup-numero"><option value="">Cargando…</option></select>
       </div>
       <button class="btn btn-primary" onclick="duplicarCatalogo()">Duplicar catálogo</button>
     </div>
@@ -253,8 +253,8 @@ hr { border: none; border-top: 1.5px solid var(--border); margin: 20px 0; }
         <input type="text" id="nuevo-nombre" placeholder="Ej: AITANA">
       </div>
       <div class="form-group">
-        <label>Número del catálogo <span style="font-weight:400;color:var(--muted);">(déjalo en 0 para asignar automáticamente)</span></label>
-        <input type="number" id="nuevo-numero" placeholder="0" min="0" value="0">
+        <label>Número del catálogo</label>
+        <select id="nuevo-numero"><option value="0">Automático (siguiente disponible)</option></select>
       </div>
       <hr>
       <div class="section-title">Prendas</div>
@@ -737,6 +737,30 @@ async function cargarSelectsCatalogos() {
         sel.appendChild(opt);
       });
     });
+
+    // Poblar selects de números disponibles (dup-numero y nuevo-numero)
+    const usados = new Set((data.items || []).map(it => Number(it.numero)).filter(n => n > 0));
+    const maxNum = usados.size ? Math.max(...usados) : 0;
+
+    const selDup = document.getElementById('dup-numero');
+    selDup.innerHTML = '';
+    for (let n = maxNum + 1; n <= maxNum + 30; n++) {
+      if (!usados.has(n)) {
+        const opt = document.createElement('option');
+        opt.value = n; opt.textContent = n;
+        selDup.appendChild(opt);
+      }
+    }
+
+    const selNuevo = document.getElementById('nuevo-numero');
+    selNuevo.innerHTML = '<option value="0">Automático (siguiente disponible)</option>';
+    for (let n = maxNum + 1; n <= maxNum + 30; n++) {
+      if (!usados.has(n)) {
+        const opt = document.createElement('option');
+        opt.value = n; opt.textContent = n;
+        selNuevo.appendChild(opt);
+      }
+    }
   } catch (e) { /* silencioso */ }
 }
 
@@ -745,7 +769,8 @@ async function duplicarCatalogo() {
   const sourceName = document.getElementById('dup-origen').value;
   const newName    = document.getElementById('dup-nombre').value.trim();
   const newNumero  = parseInt(document.getElementById('dup-numero').value) || 0;
-  if (!newName || !newNumero) { toast('Completa nombre y número', false); return; }
+  if (!newName) { toast('Escribe el nombre del nuevo catálogo', false); return; }
+  if (!newNumero) { toast('Selecciona un número para el catálogo', false); return; }
   try {
     toast('Duplicando catálogo…');
     const r = await apiAdminPost({ action: 'adminDuplicateCatalog', sourceName, newName, newNumero });
