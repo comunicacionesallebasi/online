@@ -771,14 +771,17 @@ async function duplicarCatalogo() {
   const newNumero  = parseInt(document.getElementById('dup-numero').value) || 0;
   if (!newName) { toast('Escribe el nombre del nuevo catálogo', false); return; }
   if (!newNumero) { toast('Selecciona un número para el catálogo', false); return; }
+  const btn = document.querySelector('#tab-dup .btn-primary');
+  btn.disabled = true; btn.textContent = 'Duplicando…';
   try {
-    toast('Duplicando catálogo…');
     const r = await apiAdminPost({ action: 'adminDuplicateCatalog', sourceName, newName, newNumero });
     toast(`✅ ${r.itemsCreated} prendas creadas en "${newName}"`);
-    document.getElementById('dup-nombre').value  = '';
-    document.getElementById('dup-numero').value  = '';
+    document.getElementById('dup-nombre').value = '';
+    await cargarSelectsCatalogos(); // refresca los números disponibles
   } catch (e) {
     toast(e.message, false);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Duplicar catálogo';
   }
 }
 
@@ -852,8 +855,9 @@ async function crearCatalogoNuevo() {
   const filas = document.querySelectorAll('#nuevo-prendas-list [data-idx]');
   if (!filas.length) { toast('Agrega al menos una prenda', false); return; }
 
+  const btn = document.querySelector('#tab-nuevo .btn-primary');
+  btn.disabled = true; btn.textContent = 'Creando…';
   try {
-    toast('Creando catálogo…');
     // Número automático si quedó en 0
     if (!numero) {
       const nd = await apiAdminGet({ action: 'adminNextNumero' });
@@ -868,6 +872,7 @@ async function crearCatalogoNuevo() {
       const idx     = parseInt(fila.dataset.idx);
       const pImgDat = _nuevasPrendas[idx];
       if (!pImgDat || !pImgDat.base64) continue;
+      toast(`Subiendo prenda ${i + 1} de ${filas.length}…`);
       const imgData = await apiAdminPost({
         action: 'adminUploadImage',
         catalogo: nombre.toUpperCase(),
@@ -892,11 +897,13 @@ async function crearCatalogoNuevo() {
     }
     toast(`✅ Catálogo "${nombre}" creado`);
     document.getElementById('nuevo-nombre').value  = '';
-    document.getElementById('nuevo-numero').value  = '0';
     document.getElementById('nuevo-prendas-list').innerHTML = '';
     _nuevasPrendas = [];
+    await cargarSelectsCatalogos(); // refresca los números disponibles
   } catch (e) {
     toast(e.message, false);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Crear catálogo';
   }
 }
 
