@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Allebasi · Panel de Administración</title>
+<script src="config.js"></script>
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:        #f5f5f0;
+  --surface:   #ffffff;
+  --border:    #ddd;
+  --accent:    #2c2c2c;
+  --accent2:   #e8a020;
+  --danger:    #c0392b;
+  --success:   #27ae60;
+  --text:      #222;
+  --muted:     #666;
+  --radius:    8px;
+  --shadow:    0 2px 8px rgba(0,0,0,.1);
+}
+body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+img.logo { display: block; margin: 0 auto 16px; max-width: 160px; max-height: 80px; object-fit: contain; }
+
+/* ===== LAYOUT ===== */
+#app { max-width: 980px; margin: 0 auto; padding: 24px 16px 60px; }
+.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+.header h1 { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+
+/* ===== VIEWS ===== */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ===== TARJETAS ===== */
+.card { background: var(--surface); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); margin-bottom: 20px; }
+
+/* ===== BOTONES ===== */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: var(--radius); border: none; font-size: .92rem; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+.btn:hover { opacity: .85; }
+.btn-primary  { background: var(--accent);  color: #fff; }
+.btn-accent   { background: var(--accent2); color: #fff; }
+.btn-danger   { background: var(--danger);  color: #fff; }
+.btn-success  { background: var(--success); color: #fff; }
+.btn-ghost    { background: transparent; color: var(--accent); border: 1.5px solid var(--border); }
+.btn-sm       { padding: 6px 12px; font-size: .82rem; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ===== FORM ===== */
+.form-group  { margin-bottom: 16px; }
+label        { display: block; font-size: .87rem; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+input[type=text], input[type=password], input[type=number], textarea, select {
+  width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--radius);
+  font-size: .93rem; background: #fafafa; transition: border-color .15s;
+}
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent2); background: #fff; }
+textarea { resize: vertical; min-height: 72px; }
+
+/* ===== LOGIN ===== */
+#view-login { max-width: 380px; margin: 80px auto 0; }
+#view-login .card { text-align: center; }
+#view-login h2 { font-size: 1.4rem; margin-bottom: 8px; }
+#view-login p  { color: var(--muted); font-size: .9rem; margin-bottom: 24px; }
+#login-error   { color: var(--danger); font-size: .88rem; margin-top: 10px; min-height: 20px; }
+
+/* ===== PUBLICACIONES ===== */
+.pub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 560px) { .pub-grid { grid-template-columns: 1fr; } }
+.pub-item { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius);
+            padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: var(--shadow); }
+.pub-item button.cat-name { background: none; border: none; font-size: .95rem; font-weight: 700; cursor: pointer;
+                            color: var(--accent); text-align: left; flex: 1; padding: 0; }
+.pub-item button.cat-name:hover { text-decoration: underline; color: var(--accent2); }
+.pub-item label.switch { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: .82rem; color: var(--muted); flex-shrink: 0; }
+.switch input { display: none; }
+.switch .track { width: 40px; height: 22px; background: #ccc; border-radius: 20px; position: relative; transition: background .2s; }
+.switch input:checked + .track { background: var(--success); }
+.switch .track::after { content:''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .2s; }
+.switch input:checked + .track::after { left: 21px; }
+
+/* ===== EDITOR CATÁLOGO ===== */
+.prod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.prod-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+.prod-card img { width: 100%; height: 180px; object-fit: cover; cursor: pointer; transition: opacity .15s; }
+.prod-card img:hover { opacity: .85; }
+.prod-card-body { padding: 12px 14px; }
+.prod-card-body .field-row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.prod-card-body .field-row > * { flex: 1; min-width: 100px; }
+.prod-badges { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.prod-badge-check { display: flex; align-items: center; gap: 6px; font-size: .82rem; cursor: pointer; }
+.prod-badge-check input { width: 16px; height: 16px; cursor: pointer; }
+.prod-card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+/* ===== NUEVO CATÁLOGO ===== */
+.tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
+.tab-btn { padding: 10px 18px; border: none; background: none; font-size: .9rem; font-weight: 600;
+           cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; color: var(--muted); transition: all .15s; }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent2); }
+
+/* ===== UPLOAD DE IMAGEN ===== */
+.img-upload-area { border: 2px dashed var(--border); border-radius: var(--radius); text-align: center;
+                   padding: 30px 20px; cursor: pointer; transition: border-color .15s; }
+.img-upload-area:hover { border-color: var(--accent2); }
+.img-preview-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.img-preview-grid .thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; border: 1.5px solid var(--border); cursor: pointer; }
+
+/* ===== ESTADOS / ALERTAS ===== */
+.estado { text-align: center; color: var(--muted); padding: 30px 0; font-size: .95rem; }
+.alert { padding: 12px 16px; border-radius: var(--radius); font-size: .88rem; margin-bottom: 16px; }
+.alert-success { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
+.alert-error   { background: #fdedeb; color: var(--danger); border: 1px solid #f5b7b1; }
+
+/* ===== TOAST ===== */
+#toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: var(--radius);
+         color: #fff; font-size: .9rem; font-weight: 600; box-shadow: var(--shadow);
+         transform: translateY(100px); opacity: 0; transition: all .3s; z-index: 9999; }
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.ok  { background: var(--success); }
+#toast.err { background: var(--danger); }
+
+/* ===== SPINNER ===== */
+.spinner { width: 32px; height: 32px; border: 3px solid #eee; border-top-color: var(--accent2);
+           border-radius: 50%; animation: spin .7s linear infinite; margin: 20px auto; display: none; }
+.spinner.show { display: block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== MODAL ===== */
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000; align-items: center; justify-content: center; }
+.modal-bg.open { display: flex; }
+.modal { background: #fff; border-radius: var(--radius); padding: 28px; max-width: 480px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
+.modal h3 { margin-bottom: 16px; font-size: 1.1rem; }
+
+/* ===== SEPARADOR ===== */
+hr { border: none; border-top: 1.5px solid var(--border); margin: 20px 0; }
+.section-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 14px; color: var(--accent); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== LOGIN ===== -->
+  <div id="view-login" class="view active">
+    <div class="card">
+      <img class="logo" src="assets/logo_allebasi.jpg" alt="Allebasi" onerror="this.style.display='none'">
+      <h2>Panel de Administración</h2>
+      <p>Ingresa tus credenciales para acceder</p>
+      <div class="form-group">
+        <label>Usuario</label>
+        <input type="text" id="inp-usuario" autocomplete="username" placeholder="usuario">
+      </div>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="inp-clave" autocomplete="current-password" placeholder="••••••">
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="login()">Ingresar</button>
+      <p id="login-error"></p>
+    </div>
+  </div>
+
+  <!-- ===== PUBLICACIONES ===== -->
+  <div id="view-pubs" class="view">
+    <div class="header">
+      <div>
+        <img class="logo" src="assets/logo_allebasi.jpg" alt="Allebasi" onerror="this.style.display='none'" style="margin:0 0 6px;">
+        <h1>Gestión de Catálogos</h1>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-accent" onclick="showView('view-crear')">+ Nuevo Catálogo</button>
+        <button class="btn btn-ghost" onclick="cerrarSesion()">Cerrar sesión</button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <p style="font-size:.88rem;color:var(--muted);">
+        Activa o desactiva cada catálogo con el interruptor. Haz clic en el nombre para editar sus prendas.
+      </p>
+    </div>
+    <div class="spinner" id="pub-spinner"></div>
+    <div id="pub-grid" class="pub-grid"></div>
+  </div>
+
+  <!-- ===== EDITOR CATÁLOGO ===== -->
+  <div id="view-editor" class="view">
+    <div class="header">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="showView('view-pubs');cargarPublicaciones();">← Catálogos</button>
+        <h1 id="editor-titulo">Catálogo</h1>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-success btn-sm" onclick="abrirModalNuevaPrenda()">+ Añadir prenda</button>
+        <button class="btn btn-ghost btn-sm" onclick="cerrarSesion()">Cerrar sesión</button>
+      </div>
+    </div>
+
+    <!-- Renombrar catálogo -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="section-title">Nombre del catálogo</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <input type="text" id="inp-rename" style="flex:1;min-width:200px;" placeholder="Nombre del catálogo">
+        <button class="btn btn-primary" onclick="renombrarCatalogo()">Guardar nombre</button>
+      </div>
+    </div>
+
+    <div class="spinner" id="editor-spinner"></div>
+    <div id="prod-grid" class="prod-grid"></div>
+  </div>
+
+  <!-- ===== CREAR CATÁLOGO ===== -->
+  <div id="view-crear" class="view">
+    <div class="header">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="btn btn-ghost btn-sm" onclick="showView('view-pubs');cargarPublicaciones();">← Catálogos</button>
+        <h1>Nuevo Catálogo</h1>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="selectTab('dup')">Duplicar catálogo</button>
+      <button class="tab-btn" onclick="selectTab('nuevo')">Crear desde cero</button>
+      <button class="tab-btn" onclick="selectTab('prenda')">Añadir a existente</button>
+    </div>
+
+    <!-- ── TAB DUP ── -->
+    <div id="tab-dup" class="tab-content card">
+      <div class="section-title">Duplicar catálogo existente</div>
+      <p style="color:var(--muted);font-size:.87rem;margin-bottom:16px;">
+        Copia todas las prendas de un catálogo origen con nuevos códigos consecutivos.
+      </p>
+      <div class="form-group">
+        <label>Catálogo origen</label>
+        <select id="dup-origen"></select>
+      </div>
+      <div class="form-group">
+        <label>Nombre del nuevo catálogo</label>
+        <input type="text" id="dup-nombre" placeholder="Ej: ARTISTA - TEMPORADA 2">
+      </div>
+      <div class="form-group">
+        <label>Número del catálogo</label>
+        <input type="number" id="dup-numero" placeholder="Ej: 25" min="1">
+      </div>
+      <button class="btn btn-primary" onclick="duplicarCatalogo()">Duplicar catálogo</button>
+    </div>
+
+    <!-- ── TAB NUEVO ── -->
+    <div id="tab-nuevo" class="tab-content card" style="display:none;">
+      <div class="section-title">Crear catálogo desde cero</div>
+      <p style="color:var(--muted);font-size:.87rem;margin-bottom:16px;">
+        Sube imágenes y llena la información de cada prenda. Se asignan códigos automáticamente.
+      </p>
+      <div class="form-group">
+        <label>Nombre del artista / colección</label>
+        <input type="text" id="nuevo-nombre" placeholder="Ej: AITANA">
+      </div>
+      <div class="form-group">
+        <label>Número del catálogo <span style="font-weight:400;color:var(--muted);">(déjalo en 0 para asignar automáticamente)</span></label>
+        <input type="number" id="nuevo-numero" placeholder="0" min="0" value="0">
+      </div>
+      <hr>
+      <div class="section-title">Prendas</div>
+      <div id="nuevo-prendas-list"></div>
+      <button class="btn btn-ghost" onclick="agregarFilaNueva()" style="margin-top:8px;">+ Agregar prenda</button>
+      <hr>
+      <button class="btn btn-primary" onclick="crearCatalogoNuevo()">Crear catálogo</button>
+    </div>
+
+    <!-- ── TAB PRENDA A EXISTENTE ── -->
+    <div id="tab-prenda" class="tab-content card" style="display:none;">
+      <div class="section-title">Añadir prenda a catálogo existente</div>
+      <p style="color:var(--muted);font-size:.87rem;margin-bottom:16px;">
+        Sube imagen, llena los campos y la prenda se agrega con el siguiente código disponible.
+      </p>
+      <div class="form-group">
+        <label>Catálogo destino</label>
+        <select id="prenda-catalogo"></select>
+      </div>
+      <div class="form-group">
+        <label>Imagen de la prenda</label>
+        <div class="img-upload-area" onclick="document.getElementById('prenda-img-inp').click()">
+          <p>📷 Haz clic para seleccionar una imagen</p>
+          <input type="file" id="prenda-img-inp" accept="image/*" style="display:none" onchange="previewPrendaImg(this)">
+        </div>
+        <img id="prenda-img-preview" src="" alt="" style="display:none;max-width:140px;margin-top:10px;border-radius:6px;">
+      </div>
+      <div class="form-group">
+        <label>Descripción</label>
+        <input type="text" id="prenda-desc" placeholder="Ej: Conjunto deportivo sublimado">
+      </div>
+      <div class="field-row" style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div class="form-group" style="flex:1;min-width:120px;">
+          <label>Horma</label>
+          <input type="text" id="prenda-horma" placeholder="Ej: Slim">
+        </div>
+        <div class="form-group" style="flex:1;min-width:120px;">
+          <label>Tallas (separadas por coma)</label>
+          <input type="text" id="prenda-talla" placeholder="S,M,L,XL">
+        </div>
+        <div class="form-group" style="flex:1;min-width:120px;">
+          <label>Colores (separados por coma)</label>
+          <input type="text" id="prenda-colores" placeholder="Rojo,Azul">
+        </div>
+        <div class="form-group" style="flex:1;min-width:100px;">
+          <label>Valor unitario</label>
+          <input type="number" id="prenda-valor" placeholder="85000" min="0">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="agregarPrendaExistente()">Agregar prenda</button>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- ===== MODAL NUEVA PRENDA (dentro de editor) ===== -->
+<div id="modal-prenda" class="modal-bg">
+  <div class="modal">
+    <h3>Añadir prenda al catálogo</h3>
+    <div class="form-group">
+      <label>Imagen</label>
+      <div class="img-upload-area" onclick="document.getElementById('mp-img-inp').click()">
+        <p>📷 Seleccionar imagen</p>
+        <input type="file" id="mp-img-inp" accept="image/*" style="display:none" onchange="previewMpImg(this)">
+      </div>
+      <img id="mp-img-preview" src="" alt="" style="display:none;max-width:120px;margin-top:10px;border-radius:6px;">
+    </div>
+    <div class="form-group">
+      <label>Descripción</label>
+      <input type="text" id="mp-desc" placeholder="Ej: Buso sublimado">
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <div class="form-group" style="flex:1;min-width:100px;">
+        <label>Horma</label>
+        <input type="text" id="mp-horma">
+      </div>
+      <div class="form-group" style="flex:1;min-width:100px;">
+        <label>Tallas</label>
+        <input type="text" id="mp-talla" placeholder="S,M,L">
+      </div>
+      <div class="form-group" style="flex:1;min-width:100px;">
+        <label>Colores</label>
+        <input type="text" id="mp-colores" placeholder="Rojo,Azul">
+      </div>
+      <div class="form-group" style="flex:1;min-width:100px;">
+        <label>Valor unitario</label>
+        <input type="number" id="mp-valor" min="0" placeholder="85000">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-primary" onclick="guardarNuevaPrenda()">Añadir prenda</button>
+      <button class="btn btn-ghost" onclick="cerrarModal('modal-prenda')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// =====================================================
+//  CONFIG & AUTH
+// =====================================================
+const TOKEN_KEY = 'allebasi_admin_token';
+
+function getToken() { return sessionStorage.getItem(TOKEN_KEY) || ''; }
+function setToken(t) { sessionStorage.setItem(TOKEN_KEY, t); }
+function clearToken() { sessionStorage.removeItem(TOKEN_KEY); }
+
+// =====================================================
+//  API HELPERS
+// =====================================================
+async function apiAdminGet(params) {
+  const url = new URL(API_URL);
+  params.token = getToken();
+  Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+  const resp = await fetch(url.toString());
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+async function apiAdminPost(payload) {
+  payload.token = getToken();
+  const resp = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  });
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error);
+  if (data.ok === false) throw new Error(data.error || 'Error del servidor');
+  return data;
+}
+
+// =====================================================
+//  TOAST
+// =====================================================
+function toast(msg, ok = true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + (ok ? 'ok' : 'err');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = ''; }, 3000);
+}
+
+// =====================================================
+//  VISTAS
+// =====================================================
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// =====================================================
+//  LOGIN
+// =====================================================
+async function login() {
+  const usuario = document.getElementById('inp-usuario').value.trim();
+  const clave   = document.getElementById('inp-clave').value.trim();
+  const errEl   = document.getElementById('login-error');
+  errEl.textContent = '';
+  if (!usuario || !clave) { errEl.textContent = 'Completa todos los campos.'; return; }
+  try {
+    const data = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'adminLogin', usuario, clave })
+    }).then(r => r.json());
+    if (!data.ok) throw new Error(data.error || 'Credenciales incorrectas');
+    setToken(data.token);
+    showView('view-pubs');
+    cargarPublicaciones();
+  } catch (e) {
+    errEl.textContent = e.message;
+  }
+}
+
+document.getElementById('inp-clave').addEventListener('keydown', e => {
+  if (e.key === 'Enter') login();
+});
+
+function cerrarSesion() {
+  clearToken();
+  document.getElementById('inp-usuario').value = '';
+  document.getElementById('inp-clave').value = '';
+  document.getElementById('login-error').textContent = '';
+  showView('view-login');
+}
+
+// =====================================================
+//  PUBLICACIONES
+// =====================================================
+async function cargarPublicaciones() {
+  const grid = document.getElementById('pub-grid');
+  const sp   = document.getElementById('pub-spinner');
+  grid.innerHTML = '';
+  sp.classList.add('show');
+  try {
+    const data = await apiAdminGet({ action: 'adminMenuItems' });
+    sp.classList.remove('show');
+    if (!data.items || !data.items.length) {
+      grid.innerHTML = '<p class="estado">No hay catálogos registrados.</p>';
+      return;
+    }
+    data.items.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'pub-item';
+      div.innerHTML = `
+        <button class="cat-name" onclick="abrirEditor('${escapar(item.nombre)}')">${item.nombre}</button>
+        <label class="switch" title="${item.publicado ? 'Publicado' : 'Despublicado'}">
+          Publicado
+          <input type="checkbox" ${item.publicado ? 'checked' : ''}
+            onchange="togglePublicado('${escapar(item.nombre)}', this.checked, this)">
+          <span class="track"></span>
+        </label>`;
+      grid.appendChild(div);
+    });
+  } catch (e) {
+    sp.classList.remove('show');
+    grid.innerHTML = `<p class="estado" style="color:var(--danger);">Error: ${e.message}</p>`;
+  }
+}
+
+async function togglePublicado(nombre, publicado, checkbox) {
+  checkbox.disabled = true;
+  try {
+    await apiAdminPost({ action: 'adminUpdateMenuPublicado', nombre, publicado });
+    toast(publicado ? `✅ "${nombre}" publicado` : `🔴 "${nombre}" despublicado`);
+  } catch (e) {
+    toast(e.message, false);
+    checkbox.checked = !publicado; // revertir
+  }
+  checkbox.disabled = false;
+}
+
+// =====================================================
+//  EDITOR DE CATÁLOGO
+// =====================================================
+let _currentCatalogo = '';
+
+async function abrirEditor(nombre) {
+  _currentCatalogo = nombre;
+  document.getElementById('editor-titulo').textContent = nombre;
+  document.getElementById('inp-rename').value = nombre;
+  showView('view-editor');
+  cargarProductos(nombre);
+}
+
+async function cargarProductos(catalogo) {
+  const grid = document.getElementById('prod-grid');
+  const sp   = document.getElementById('editor-spinner');
+  grid.innerHTML = '';
+  sp.classList.add('show');
+  try {
+    const data = await apiAdminGet({ action: 'adminProducts', catalogo });
+    sp.classList.remove('show');
+    if (!data.products || !data.products.length) {
+      grid.innerHTML = '<p class="estado">No hay prendas para este catálogo.</p>';
+      return;
+    }
+    data.products.forEach(p => renderProdCard(p, grid));
+  } catch (e) {
+    sp.classList.remove('show');
+    grid.innerHTML = `<p class="estado" style="color:var(--danger);">Error: ${e.message}</p>`;
+  }
+}
+
+function renderProdCard(p, container) {
+  const card = document.createElement('div');
+  card.className = 'prod-card';
+  card.dataset.codigo = p.codigo;
+
+  const thumbSrc = p.imagen || 'assets/logo_allebasi.jpg';
+  card.innerHTML = `
+    <img src="${thumbSrc}" alt="${p.codigo}" title="Clic para cambiar imagen" onclick="cambiarImagen('${p.codigo}', '${escapar(p.catalogo)}')">
+    <div class="prod-card-body">
+      <small style="color:var(--muted);">Código: <strong>${p.codigo}</strong></small>
+      <div class="prod-badges">
+        <label class="prod-badge-check">
+          <input type="checkbox" ${!p.publicado ? 'checked' : ''}
+            onchange="updateProdField('${p.codigo}','${escapar(p.catalogo)}','publicado', this.checked ? 'No' : '')">
+          Despublicado
+        </label>
+        <label class="prod-badge-check">
+          <input type="checkbox" ${p.existencia === 'No' || p.existencia === 'no' ? 'checked' : ''}
+            onchange="updateProdField('${p.codigo}','${escapar(p.catalogo)}','existencia', this.checked ? 'No' : '')">
+          Agotado
+        </label>
+      </div>
+      <div class="form-group">
+        <label>Descripción</label>
+        <input type="text" value="${escapar(p.descripcion)}" data-field="descripcion"
+          onblur="updateProdField('${p.codigo}','${escapar(p.catalogo)}','descripcion',this.value)">
+      </div>
+      <div class="field-row">
+        <div class="form-group">
+          <label>Horma</label>
+          <input type="text" value="${escapar(p.horma)}" data-field="horma"
+            onblur="updateProdField('${p.codigo}','${escapar(p.catalogo)}','horma',this.value)">
+        </div>
+        <div class="form-group">
+          <label>Tallas</label>
+          <input type="text" value="${escapar(p.talla)}" data-field="talla"
+            onblur="updateProdField('${p.codigo}','${escapar(p.catalogo)}','talla',this.value)">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="form-group">
+          <label>Colores</label>
+          <input type="text" value="${escapar(p.colores)}" data-field="colores"
+            onblur="updateProdField('${p.codigo}','${escapar(p.catalogo)}','colores',this.value)">
+        </div>
+        <div class="form-group">
+          <label>Valor unitario</label>
+          <input type="number" value="${p.valorUnit || ''}" data-field="valorUnit"
+            onblur="updateProdField('${p.codigo}','${escapar(p.catalogo)}','valorUnit',this.value)">
+        </div>
+      </div>
+    </div>`;
+  container.appendChild(card);
+}
+
+async function updateProdField(codigo, catalogo, field, value) {
+  try {
+    const fields = {};
+    fields[field] = value;
+    await apiAdminPost({ action: 'adminUpdateProduct', codigo, catalogo, fields });
+    toast('✅ Guardado');
+  } catch (e) {
+    toast(e.message, false);
+  }
+}
+
+// ─── Renombrar catálogo ───────────────────────────────────
+async function renombrarCatalogo() {
+  const newName = document.getElementById('inp-rename').value.trim();
+  if (!newName) { toast('Escribe el nuevo nombre', false); return; }
+  if (newName === _currentCatalogo) { toast('El nombre no cambió', false); return; }
+  try {
+    await apiAdminPost({ action: 'adminRenameCatalog', oldName: _currentCatalogo, newName });
+    toast(`✅ Catálogo renombrado a "${newName}"`);
+    _currentCatalogo = newName;
+    document.getElementById('editor-titulo').textContent = newName;
+  } catch (e) {
+    toast(e.message, false);
+  }
+}
+
+// ─── Cambiar imagen ────────────────────────────────────────
+function cambiarImagen(codigo, catalogo) {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = async () => {
+    const file = inp.files[0];
+    if (!file) return;
+    try {
+      toast('Subiendo imagen…');
+      const { base64, mime } = await fileToBase64(file, 1200);
+      const data = await apiAdminPost({
+        action: 'adminUploadImage',
+        catalogo: catalogo.toUpperCase(),
+        base64, mimeType: mime, fileName: file.name
+      });
+      await apiAdminPost({ action: 'adminUpdateProduct', codigo, catalogo, fields: { enlace: data.enlace } });
+      // Actualizar miniatura en pantalla
+      const card = document.querySelector(`.prod-card[data-codigo="${codigo}"]`);
+      if (card) {
+        const img = card.querySelector('img');
+        if (img) {
+          const m = data.enlace.match(/\/d\/([a-zA-Z0-9_-]+)/);
+          if (m) img.src = `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400&t=${Date.now()}`;
+        }
+      }
+      toast('✅ Imagen actualizada');
+    } catch (e) {
+      toast(e.message, false);
+    }
+  };
+  inp.click();
+}
+
+// ─── Modal nueva prenda ────────────────────────────────────
+function abrirModalNuevaPrenda() {
+  document.getElementById('mp-desc').value   = '';
+  document.getElementById('mp-horma').value  = '';
+  document.getElementById('mp-talla').value  = '';
+  document.getElementById('mp-colores').value= '';
+  document.getElementById('mp-valor').value  = '';
+  document.getElementById('mp-img-preview').style.display = 'none';
+  document.getElementById('mp-img-inp').value = '';
+  document.getElementById('modal-prenda').classList.add('open');
+}
+
+function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function previewMpImg(inp) {
+  const f = inp.files[0];
+  if (!f) return;
+  const img = document.getElementById('mp-img-preview');
+  img.src = URL.createObjectURL(f);
+  img.style.display = 'block';
+}
+
+async function guardarNuevaPrenda() {
+  const imgInp = document.getElementById('mp-img-inp');
+  const desc   = document.getElementById('mp-desc').value.trim();
+  if (!imgInp.files[0]) { toast('Selecciona una imagen', false); return; }
+  try {
+    toast('Creando prenda…');
+    const file = imgInp.files[0];
+    const { base64, mime } = await fileToBase64(file, 1200);
+    // Obtener número del catálogo actual
+    const numData = await apiAdminGet({ action: 'adminProducts', catalogo: _currentCatalogo });
+    const numero = numData.products.length ? numData.products[0].numero : '';
+    // Subir imagen
+    const imgData = await apiAdminPost({
+      action: 'adminUploadImage',
+      catalogo: _currentCatalogo.toUpperCase(),
+      base64, mimeType: mime, fileName: file.name
+    });
+    // Crear prenda
+    await apiAdminPost({
+      action: 'adminCreateProduct',
+      product: {
+        enlace:      imgData.enlace,
+        valorUnit:   document.getElementById('mp-valor').value,
+        talla:       document.getElementById('mp-talla').value,
+        colores:     document.getElementById('mp-colores').value,
+        horma:       document.getElementById('mp-horma').value,
+        existencia:  '',
+        numero,
+        catalogo:    _currentCatalogo,
+        descripcion: desc,
+        publicado:   ''
+      }
+    });
+    cerrarModal('modal-prenda');
+    toast('✅ Prenda añadida');
+    cargarProductos(_currentCatalogo);
+  } catch (e) {
+    toast(e.message, false);
+  }
+}
+
+// =====================================================
+//  CREAR CATÁLOGO – TABS
+// =====================================================
+function selectTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    const tabs = ['dup','nuevo','prenda'];
+    b.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+  document.getElementById('tab-' + name).style.display = 'block';
+}
+
+// Poblar selects con catálogos existentes al mostrar view-crear
+async function cargarSelectsCatalogos() {
+  try {
+    const data = await apiAdminGet({ action: 'adminMenuItems' });
+    const sel1 = document.getElementById('dup-origen');
+    const sel2 = document.getElementById('prenda-catalogo');
+    [sel1, sel2].forEach(sel => {
+      sel.innerHTML = '';
+      (data.items || []).forEach(it => {
+        const opt = document.createElement('option');
+        opt.value = it.nombre; opt.textContent = it.nombre;
+        sel.appendChild(opt);
+      });
+    });
+  } catch (e) { /* silencioso */ }
+}
+
+// ─── DUPLICAR ─────────────────────────────────────────────
+async function duplicarCatalogo() {
+  const sourceName = document.getElementById('dup-origen').value;
+  const newName    = document.getElementById('dup-nombre').value.trim();
+  const newNumero  = parseInt(document.getElementById('dup-numero').value) || 0;
+  if (!newName || !newNumero) { toast('Completa nombre y número', false); return; }
+  try {
+    toast('Duplicando catálogo…');
+    const r = await apiAdminPost({ action: 'adminDuplicateCatalog', sourceName, newName, newNumero });
+    toast(`✅ ${r.itemsCreated} prendas creadas en "${newName}"`);
+    document.getElementById('dup-nombre').value  = '';
+    document.getElementById('dup-numero').value  = '';
+  } catch (e) {
+    toast(e.message, false);
+  }
+}
+
+// ─── CREAR DESDE CERO ─────────────────────────────────────
+let _nuevasPrendas = [];
+
+function agregarFilaNueva() {
+  const idx = _nuevasPrendas.length;
+  _nuevasPrendas.push({ base64: null, mime: null, fileName: null });
+  const lista = document.getElementById('nuevo-prendas-list');
+  const fila  = document.createElement('div');
+  fila.dataset.idx = idx;
+  fila.className = 'card';
+  fila.style.marginBottom = '14px';
+  fila.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <strong>Prenda ${idx + 1}</strong>
+      <button class="btn btn-danger btn-sm" onclick="quitarFilaNueva(${idx}, this)">Quitar</button>
+    </div>
+    <div class="form-group">
+      <label>Imagen</label>
+      <div class="img-upload-area" onclick="this.nextElementSibling.click()">📷 Seleccionar imagen</div>
+      <input type="file" accept="image/*" style="display:none" onchange="previewFilaNueva(this, ${idx})">
+      <img style="display:none;max-width:100px;margin-top:8px;border-radius:6px;" alt="">
+    </div>
+    <div class="form-group">
+      <label>Descripción</label>
+      <input type="text" data-key="descripcion" placeholder="Ej: Buso sublimado">
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <div class="form-group" style="flex:1;min-width:90px;"><label>Horma</label><input type="text" data-key="horma"></div>
+      <div class="form-group" style="flex:1;min-width:90px;"><label>Tallas</label><input type="text" data-key="talla" placeholder="S,M,L"></div>
+      <div class="form-group" style="flex:1;min-width:90px;"><label>Colores</label><input type="text" data-key="colores"></div>
+      <div class="form-group" style="flex:1;min-width:90px;"><label>Valor</label><input type="number" data-key="valorUnit" placeholder="85000"></div>
+    </div>`;
+  lista.appendChild(fila);
+}
+
+function quitarFilaNueva(idx, btn) {
+  _nuevasPrendas[idx] = null; // marcar como eliminada
+  btn.closest('[data-idx]').remove();
+}
+
+function previewFilaNueva(inp, idx) {
+  const f = inp.files[0]; if (!f) return;
+  const img = inp.nextElementSibling;
+  img.src = URL.createObjectURL(f);
+  img.style.display = 'block';
+  fileToBase64(f, 1200).then(({ base64, mime }) => {
+    _nuevasPrendas[idx] = { base64, mime, fileName: f.name };
+  });
+}
+
+async function crearCatalogoNuevo() {
+  const nombre = document.getElementById('nuevo-nombre').value.trim();
+  let   numero = parseInt(document.getElementById('nuevo-numero').value) || 0;
+  if (!nombre) { toast('Escribe el nombre del artista', false); return; }
+  const filas = document.querySelectorAll('#nuevo-prendas-list [data-idx]');
+  if (!filas.length) { toast('Agrega al menos una prenda', false); return; }
+
+  try {
+    toast('Creando catálogo…');
+    // Número automático si quedó en 0
+    if (!numero) {
+      const nd = await apiAdminGet({ action: 'adminNextNumero' });
+      numero = nd.nextNumero;
+    }
+    // Crear entrada en LISTADOS
+    await apiAdminPost({ action: 'adminCreateCatalog', nombre, numero });
+
+    // Crear cada prenda
+    for (let i = 0; i < filas.length; i++) {
+      const fila    = filas[i];
+      const idx     = parseInt(fila.dataset.idx);
+      const pImgDat = _nuevasPrendas[idx];
+      if (!pImgDat || !pImgDat.base64) continue;
+      const imgData = await apiAdminPost({
+        action: 'adminUploadImage',
+        catalogo: nombre.toUpperCase(),
+        base64: pImgDat.base64, mimeType: pImgDat.mime, fileName: pImgDat.fileName
+      });
+      const get = key => (fila.querySelector(`[data-key="${key}"]`) || {}).value || '';
+      await apiAdminPost({
+        action: 'adminCreateProduct',
+        product: {
+          enlace:      imgData.enlace,
+          valorUnit:   get('valorUnit'),
+          talla:       get('talla'),
+          colores:     get('colores'),
+          horma:       get('horma'),
+          existencia:  '',
+          numero,
+          catalogo:    nombre,
+          descripcion: get('descripcion'),
+          publicado:   ''
+        }
+      });
+    }
+    toast(`✅ Catálogo "${nombre}" creado`);
+    document.getElementById('nuevo-nombre').value  = '';
+    document.getElementById('nuevo-numero').value  = '0';
+    document.getElementById('nuevo-prendas-list').innerHTML = '';
+    _nuevasPrendas = [];
+  } catch (e) {
+    toast(e.message, false);
+  }
+}
+
+// ─── AÑADIR A EXISTENTE ───────────────────────────────────
+function previewPrendaImg(inp) {
+  const f = inp.files[0]; if (!f) return;
+  const img = document.getElementById('prenda-img-preview');
+  img.src = URL.createObjectURL(f);
+  img.style.display = 'block';
+}
+
+async function agregarPrendaExistente() {
+  const catalogo = document.getElementById('prenda-catalogo').value;
+  const imgInp   = document.getElementById('prenda-img-inp');
+  if (!imgInp.files[0]) { toast('Selecciona una imagen', false); return; }
+  try {
+    toast('Subiendo prenda…');
+    const file = imgInp.files[0];
+    const { base64, mime } = await fileToBase64(file, 1200);
+    // Obtener número del catálogo
+    const prodData = await apiAdminGet({ action: 'adminProducts', catalogo });
+    const numero   = prodData.products.length ? prodData.products[0].numero : '';
+    // Subir imagen
+    const imgData = await apiAdminPost({
+      action: 'adminUploadImage',
+      catalogo: catalogo.toUpperCase(),
+      base64, mimeType: mime, fileName: file.name
+    });
+    // Crear prenda
+    await apiAdminPost({
+      action: 'adminCreateProduct',
+      product: {
+        enlace:      imgData.enlace,
+        valorUnit:   document.getElementById('prenda-valor').value,
+        talla:       document.getElementById('prenda-talla').value,
+        colores:     document.getElementById('prenda-colores').value,
+        horma:       document.getElementById('prenda-horma').value,
+        existencia:  '',
+        numero,
+        catalogo,
+        descripcion: document.getElementById('prenda-desc').value,
+        publicado:   ''
+      }
+    });
+    toast(`✅ Prenda añadida a "${catalogo}"`);
+    ['prenda-desc','prenda-horma','prenda-talla','prenda-colores','prenda-valor'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('prenda-img-preview').style.display = 'none';
+    imgInp.value = '';
+  } catch (e) {
+    toast(e.message, false);
+  }
+}
+
+// =====================================================
+//  UTILITARIOS
+// =====================================================
+function escapar(str) {
+  return String(str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+/**
+ * Convierte un File a base64, redimensionando si supera maxPx en algún lado.
+ * Retorna { base64, mime }.
+ */
+function fileToBase64(file, maxPx = 1200) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = evt => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxPx || h > maxPx) {
+          if (w >= h) { h = Math.round(h * maxPx / w); w = maxPx; }
+          else        { w = Math.round(w * maxPx / h); h = maxPx; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const base64  = dataUrl.split(',')[1];
+        resolve({ base64, mime: 'image/jpeg' });
+      };
+      img.src = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// =====================================================
+//  INICIALIZACIÓN
+// =====================================================
+// Al mostrar la vista 'crear', cargar los selects
+const viewCrear = document.getElementById('view-crear');
+const observer  = new MutationObserver(() => {
+  if (viewCrear.classList.contains('active')) cargarSelectsCatalogos();
+});
+observer.observe(viewCrear, { attributes: true, attributeFilter: ['class'] });
+
+// Si hay sesión activa, ir directo a publicaciones
+if (getToken()) {
+  showView('view-pubs');
+  cargarPublicaciones();
+}
+</script>
+</body>
+</html>
