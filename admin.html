@@ -268,20 +268,41 @@ hr { border: none; border-top: 1.5px solid var(--border); margin: 20px 0; }
     <div id="tab-prenda" class="tab-content card" style="display:none;">
       <div class="section-title">Añadir prenda a catálogo existente</div>
       <p style="color:var(--muted);font-size:.87rem;margin-bottom:16px;">
-        Sube imagen, llena los campos y la prenda se agrega con el siguiente código disponible.
+        Llena los campos y la prenda se agrega con el siguiente código disponible.
       </p>
       <div class="form-group">
         <label>Catálogo destino</label>
-        <select id="prenda-catalogo"></select>
+        <select id="prenda-catalogo" onchange="onCambiarCatalogoExistente()"></select>
       </div>
       <div class="form-group">
         <label>Imagen de la prenda</label>
-        <div class="img-upload-area" onclick="document.getElementById('prenda-img-inp').click()">
-          <p>📷 Haz clic para seleccionar una imagen o video</p>
-          <input type="file" id="prenda-img-inp" accept="image/*,video/*" style="display:none" onchange="previewPrendaImg(this)">
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <button id="btn-prenda-nueva" onclick="setPrendaImgMode('nueva')"
+            style="font-size:.78rem;padding:4px 10px;border:none;border-radius:4px;cursor:pointer;background:var(--primary);color:#fff;">
+            📷 Nueva imagen
+          </button>
+          <button id="btn-prenda-exist" onclick="setPrendaImgMode('existente')"
+            style="font-size:.78rem;padding:4px 10px;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:var(--surface);color:var(--text);">
+            🔗 Imagen del catálogo
+          </button>
         </div>
-        <img id="prenda-img-preview" src="" alt="" style="display:none;max-width:140px;margin-top:10px;border-radius:6px;">
-        <video id="prenda-vid-preview" controls style="display:none;max-width:220px;margin-top:10px;border-radius:6px;"></video>
+        <!-- Modo nueva imagen -->
+        <div id="prenda-upload-area">
+          <div class="img-upload-area" onclick="document.getElementById('prenda-img-inp').click()">
+            <p>📷 Haz clic para seleccionar una imagen o video</p>
+            <input type="file" id="prenda-img-inp" accept="image/*,video/*" style="display:none" onchange="previewPrendaImg(this)">
+          </div>
+          <img id="prenda-img-preview" src="" alt="" style="display:none;max-width:140px;margin-top:10px;border-radius:6px;">
+          <video id="prenda-vid-preview" controls style="display:none;max-width:220px;margin-top:10px;border-radius:6px;"></video>
+        </div>
+        <!-- Modo imagen existente del catálogo -->
+        <div id="prenda-exist-area" style="display:none;">
+          <p id="prenda-exist-hint" style="color:var(--muted);font-size:.83rem;margin-bottom:8px;">
+            Selecciona un catálogo primero para cargar sus imágenes.
+          </p>
+          <div id="prenda-exist-grid" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
+          <input type="hidden" id="prenda-exist-enlace">
+        </div>
       </div>
       <div class="form-group">
         <label>Descripción</label>
@@ -788,6 +809,7 @@ async function duplicarCatalogo() {
 
 // ─── CREAR DESDE CERO ─────────────────────────────────────
 let _nuevasPrendas = [];
+let _ownImageData  = {}; // respaldo de imagen propia al cambiar a modo compartido
 
 function agregarFilaNueva() {
   const idx = _nuevasPrendas.length;
@@ -804,9 +826,28 @@ function agregarFilaNueva() {
     </div>
     <div class="form-group">
       <label>Imagen</label>
-      <div class="img-upload-area" onclick="this.nextElementSibling.click()">📷 Seleccionar imagen o video</div>
-      <input type="file" accept="image/*,video/*" style="display:none" onchange="previewFilaNueva(this, ${idx})">
-      <img style="display:none;max-width:100px;margin-top:8px;border-radius:6px;" alt="">
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <button id="btn-nueva-${idx}" onclick="usarImagenNueva(${idx})"
+          style="font-size:.78rem;padding:4px 10px;border:none;border-radius:4px;cursor:pointer;background:var(--primary);color:#fff;">
+          📷 Nueva imagen
+        </button>
+        <button id="btn-comp-${idx}" onclick="usarImagenCompartida(${idx})"
+          style="font-size:.78rem;padding:4px 10px;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:var(--surface);color:var(--text);">
+          ↩ Usar imagen de otra prenda
+        </button>
+      </div>
+      <div id="upload-area-${idx}">
+        <div class="img-upload-area" onclick="this.nextElementSibling.click()">📷 Seleccionar imagen o video</div>
+        <input type="file" accept="image/*,video/*" style="display:none" onchange="previewFilaNueva(this, ${idx})">
+        <img style="display:none;max-width:100px;margin-top:8px;border-radius:6px;" alt="">
+      </div>
+      <div id="shared-area-${idx}" style="display:none;">
+        <select id="shared-select-${idx}" onchange="seleccionarPrendaCompartida(${idx})"
+          style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);margin-bottom:6px;">
+          <option value="">— Seleccionar prenda con imagen —</option>
+        </select>
+        <img id="shared-preview-${idx}" style="display:none;max-width:100px;border-radius:6px;" alt="">
+      </div>
     </div>
     <div class="form-group">
       <label>Descripción</label>
@@ -821,9 +862,100 @@ function agregarFilaNueva() {
   lista.appendChild(fila);
 }
 
+function usarImagenNueva(idx) {
+  document.getElementById('upload-area-' + idx).style.display = '';
+  document.getElementById('shared-area-'  + idx).style.display = 'none';
+  const bN = document.getElementById('btn-nueva-' + idx);
+  const bC = document.getElementById('btn-comp-'  + idx);
+  bN.style.background = 'var(--primary)'; bN.style.color = '#fff'; bN.style.border = 'none';
+  bC.style.background = 'var(--surface)'; bC.style.color = 'var(--text)'; bC.style.border = '1px solid var(--border)';
+  // Restaurar imagen propia si la hubiera guardado antes
+  _nuevasPrendas[idx] = _ownImageData[idx] || { base64: null, mime: null, fileName: null };
+}
+
+function usarImagenCompartida(idx) {
+  document.getElementById('upload-area-' + idx).style.display = 'none';
+  document.getElementById('shared-area-'  + idx).style.display = '';
+  const bN = document.getElementById('btn-nueva-' + idx);
+  const bC = document.getElementById('btn-comp-'  + idx);
+  bC.style.background = 'var(--primary)'; bC.style.color = '#fff'; bC.style.border = 'none';
+  bN.style.background = 'var(--surface)'; bN.style.color = 'var(--text)'; bN.style.border = '1px solid var(--border)';
+  // Guardar imagen propia antes de perderla
+  const curr = _nuevasPrendas[idx];
+  if (curr && curr.base64) _ownImageData[idx] = curr;
+  _nuevasPrendas[idx] = { sharedFrom: null };
+  actualizarDropdownCompartido(idx);
+}
+
+function actualizarDropdownCompartido(targetIdx) {
+  const sel = document.getElementById('shared-select-' + targetIdx);
+  if (!sel) return;
+  const prevVal = sel.value;
+  sel.innerHTML = '<option value="">— Seleccionar prenda con imagen —</option>';
+  document.querySelectorAll('#nuevo-prendas-list [data-idx]').forEach(fila => {
+    const fIdx = parseInt(fila.dataset.idx);
+    if (fIdx === targetIdx) return;
+    const dat = _nuevasPrendas[fIdx] || _ownImageData[fIdx];
+    if (!dat || !dat.base64) return; // solo prendas con imagen propia
+    const label = fila.querySelector('strong').textContent;
+    const opt = document.createElement('option');
+    opt.value = fIdx;
+    opt.textContent = label;
+    sel.appendChild(opt);
+  });
+  // Restaurar selección anterior si sigue disponible
+  if (prevVal && sel.querySelector(`option[value="${prevVal}"]`)) {
+    sel.value = prevVal;
+  }
+}
+
+function actualizarTodosLosDropdowns() {
+  document.querySelectorAll('#nuevo-prendas-list [data-idx]').forEach(fila => {
+    const idx = parseInt(fila.dataset.idx);
+    const sa  = document.getElementById('shared-area-' + idx);
+    if (sa && sa.style.display !== 'none') actualizarDropdownCompartido(idx);
+  });
+}
+
+function seleccionarPrendaCompartida(targetIdx) {
+  const sel    = document.getElementById('shared-select-' + targetIdx);
+  const srcIdx = sel.value === '' ? null : parseInt(sel.value);
+  const prev   = document.getElementById('shared-preview-' + targetIdx);
+  if (srcIdx === null || isNaN(srcIdx)) {
+    _nuevasPrendas[targetIdx] = { sharedFrom: null };
+    prev.style.display = 'none';
+    return;
+  }
+  _nuevasPrendas[targetIdx] = { sharedFrom: srcIdx };
+  // Copiar vista previa de la fuente
+  const srcFila = document.querySelector(`#nuevo-prendas-list [data-idx="${srcIdx}"]`);
+  if (!srcFila) return;
+  const srcImg = srcFila.querySelector('#upload-area-' + srcIdx + ' img[alt=""]');
+  if (srcImg && srcImg.style.display !== 'none') {
+    prev.src = srcImg.src;
+    prev.style.display = 'block';
+  } else {
+    prev.style.display = 'none';
+    // Si es video, mostrar etiqueta
+    const srcVid = srcFila.querySelector('#upload-area-' + srcIdx + ' .vid-label');
+    if (srcVid) {
+      let vl = document.getElementById('shared-vidlabel-' + targetIdx);
+      if (!vl) {
+        vl = document.createElement('span');
+        vl.id = 'shared-vidlabel-' + targetIdx;
+        vl.style.cssText = 'display:inline-block;margin-top:4px;padding:4px 8px;background:#e8a020;color:#fff;border-radius:4px;font-size:.8rem;';
+        prev.parentElement.appendChild(vl);
+      }
+      vl.textContent = srcVid.textContent;
+    }
+  }
+}
+
 function quitarFilaNueva(idx, btn) {
-  _nuevasPrendas[idx] = null; // marcar como eliminada
+  _nuevasPrendas[idx] = null;
+  delete _ownImageData[idx];
   btn.closest('[data-idx]').remove();
+  actualizarTodosLosDropdowns();
 }
 
 function previewFilaNueva(inp, idx) {
@@ -831,7 +963,6 @@ function previewFilaNueva(inp, idx) {
   const img = inp.nextElementSibling;
   if (f.type.startsWith('video/')) {
     img.style.display = 'none';
-    // Mostrar pequeña etiqueta de video
     let vLabel = inp.parentElement.querySelector('.vid-label');
     if (!vLabel) {
       vLabel = document.createElement('span');
@@ -845,7 +976,10 @@ function previewFilaNueva(inp, idx) {
     img.style.display = 'block';
   }
   fileToBase64(f, 1200).then(({ base64, mime }) => {
-    _nuevasPrendas[idx] = { base64, mime, fileName: f.name };
+    const dat = { base64, mime, fileName: f.name };
+    _nuevasPrendas[idx] = dat;
+    _ownImageData[idx]  = dat; // respaldo para cuando se cambie a modo compartido
+    actualizarTodosLosDropdowns();
   });
 }
 
@@ -859,31 +993,53 @@ async function crearCatalogoNuevo() {
   const btn = document.querySelector('#tab-nuevo .btn-primary');
   btn.disabled = true; btn.textContent = 'Creando…';
   try {
-    // Número automático si quedó en 0
     if (!numero) {
       const nd = await apiAdminGet({ action: 'adminNextNumero' });
       numero = nd.nextNumero;
     }
-    // Crear entrada en LISTADOS
     await apiAdminPost({ action: 'adminCreateCatalog', nombre, numero });
 
-    // Crear cada prenda
+    // ── Paso 1: subir imágenes propias ────────────────────────
+    const enlaceMap    = {}; // idx → URL en Drive
+    const conImagenProp = [...filas].filter(f => {
+      const d = _nuevasPrendas[parseInt(f.dataset.idx)];
+      return d && d.base64;
+    });
     for (let i = 0; i < filas.length; i++) {
-      const fila    = filas[i];
-      const idx     = parseInt(fila.dataset.idx);
-      const pImgDat = _nuevasPrendas[idx];
-      if (!pImgDat || !pImgDat.base64) continue;
-      toast(`Subiendo prenda ${i + 1} de ${filas.length}…`);
+      const fila = filas[i];
+      const idx  = parseInt(fila.dataset.idx);
+      const pDat = _nuevasPrendas[idx];
+      if (!pDat || !pDat.base64) continue;
+      const num = conImagenProp.indexOf(fila) + 1;
+      toast(`Subiendo imagen ${num} de ${conImagenProp.length}…`);
       const imgData = await apiAdminPost({
         action: 'adminUploadImage',
         catalogo: nombre.toUpperCase(),
-        base64: pImgDat.base64, mimeType: pImgDat.mime, fileName: pImgDat.fileName
+        base64: pDat.base64, mimeType: pDat.mime, fileName: pDat.fileName
       });
+      enlaceMap[idx] = imgData.enlace;
+    }
+
+    // ── Paso 2: resolver imágenes compartidas ─────────────────
+    for (let i = 0; i < filas.length; i++) {
+      const idx  = parseInt(filas[i].dataset.idx);
+      const pDat = _nuevasPrendas[idx];
+      if (!pDat || pDat.sharedFrom === undefined || pDat.sharedFrom === null) continue;
+      enlaceMap[idx] = enlaceMap[pDat.sharedFrom]; // reutiliza mismo enlace Drive
+    }
+
+    // ── Paso 3: crear filas en CODENLACES ────────────────────
+    let created = 0;
+    for (let i = 0; i < filas.length; i++) {
+      const fila   = filas[i];
+      const idx    = parseInt(fila.dataset.idx);
+      const enlace = enlaceMap[idx];
+      if (!enlace) continue; // sin imagen, se omite
       const get = key => (fila.querySelector(`[data-key="${key}"]`) || {}).value || '';
       await apiAdminPost({
         action: 'adminCreateProduct',
         product: {
-          enlace:      imgData.enlace,
+          enlace,
           valorUnit:   get('valorUnit'),
           talla:       get('talla'),
           colores:     get('colores'),
@@ -895,12 +1051,14 @@ async function crearCatalogoNuevo() {
           publicado:   ''
         }
       });
+      created++;
     }
-    toast(`✅ Catálogo "${nombre}" creado`);
+    toast(`✅ Catálogo "${nombre}" creado con ${created} prenda(s)`);
     document.getElementById('nuevo-nombre').value  = '';
     document.getElementById('nuevo-prendas-list').innerHTML = '';
     _nuevasPrendas = [];
-    await cargarSelectsCatalogos(); // refresca los números disponibles
+    _ownImageData  = {};
+    await cargarSelectsCatalogos();
   } catch (e) {
     toast(e.message, false);
   } finally {
@@ -909,6 +1067,88 @@ async function crearCatalogoNuevo() {
 }
 
 // ─── AÑADIR A EXISTENTE ───────────────────────────────────
+let _prendaImgMode = 'nueva'; // 'nueva' | 'existente'
+
+function setPrendaImgMode(mode) {
+  _prendaImgMode = mode;
+  const bN = document.getElementById('btn-prenda-nueva');
+  const bE = document.getElementById('btn-prenda-exist');
+  if (mode === 'nueva') {
+    document.getElementById('prenda-upload-area').style.display = '';
+    document.getElementById('prenda-exist-area').style.display  = 'none';
+    bN.style.background = 'var(--primary)'; bN.style.color = '#fff'; bN.style.border = 'none';
+    bE.style.background = 'var(--surface)'; bE.style.color = 'var(--text)'; bE.style.border = '1px solid var(--border)';
+  } else {
+    document.getElementById('prenda-upload-area').style.display = 'none';
+    document.getElementById('prenda-exist-area').style.display  = '';
+    bE.style.background = 'var(--primary)'; bE.style.color = '#fff'; bE.style.border = 'none';
+    bN.style.background = 'var(--surface)'; bN.style.color = 'var(--text)'; bN.style.border = '1px solid var(--border)';
+    cargarImagenesExistentesCatalogo();
+  }
+}
+
+async function onCambiarCatalogoExistente() {
+  // Si el usuario cambia de catálogo estando en modo "existente", recargar imágenes
+  if (_prendaImgMode === 'existente') cargarImagenesExistentesCatalogo();
+}
+
+async function cargarImagenesExistentesCatalogo() {
+  const catalogo = document.getElementById('prenda-catalogo').value;
+  const grid     = document.getElementById('prenda-exist-grid');
+  const hint     = document.getElementById('prenda-exist-hint');
+  const hidden   = document.getElementById('prenda-exist-enlace');
+  grid.innerHTML = '';
+  hidden.value   = '';
+  if (!catalogo) {
+    hint.textContent = 'Selecciona un catálogo primero para cargar sus imágenes.';
+    hint.style.display = '';
+    return;
+  }
+  hint.textContent = 'Cargando imágenes…';
+  hint.style.display = '';
+  try {
+    const data = await apiAdminGet({ action: 'adminProducts', catalogo });
+    // Obtener enlaces únicos (cada enlace = una imagen diferente en Drive)
+    const vistos = new Set();
+    const items  = (data.products || []).filter(p => {
+      if (!p.enlace || vistos.has(p.enlace)) return false;
+      vistos.add(p.enlace);
+      return true;
+    });
+    if (!items.length) {
+      hint.textContent = 'Este catálogo no tiene imágenes aún.';
+      return;
+    }
+    hint.style.display = 'none';
+    items.forEach(p => {
+      const card = document.createElement('div');
+      card.dataset.enlace = p.enlace;
+      card.title = p.descripcion || p.enlace;
+      card.style.cssText = 'cursor:pointer;border:2px solid transparent;border-radius:8px;padding:4px;text-align:center;width:90px;transition:border-color .15s;';
+      // Convertir enlace Drive → thumbnail embebible
+      const fileId = (p.enlace.match(/[-\w]{25,}/) || [''])[0];
+      const thumb  = fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w120` : '';
+      card.innerHTML = thumb
+        ? `<img src="${thumb}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;" onerror="this.src='';this.parentElement.innerHTML='<span style=font-size:2rem>🖼️</span>'">
+           <div style="font-size:.7rem;margin-top:4px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.descripcion||''}</div>`
+        : `<span style="font-size:2rem">🖼️</span><div style="font-size:.7rem;color:var(--muted);">${p.descripcion||''}</div>`;
+      card.onclick = () => {
+        grid.querySelectorAll('[data-enlace]').forEach(c => {
+          c.style.borderColor = 'transparent';
+          c.style.background  = 'transparent';
+        });
+        card.style.borderColor = 'var(--primary)';
+        card.style.background  = 'rgba(var(--primary-rgb,80,120,255),.08)';
+        hidden.value = p.enlace;
+      };
+      grid.appendChild(card);
+    });
+  } catch (e) {
+    hint.textContent = 'Error al cargar imágenes: ' + e.message;
+    hint.style.display = '';
+  }
+}
+
 function previewPrendaImg(inp) {
   const f = inp.files[0]; if (!f) return;
   const img = document.getElementById('prenda-img-preview');
@@ -926,26 +1166,43 @@ function previewPrendaImg(inp) {
 
 async function agregarPrendaExistente() {
   const catalogo = document.getElementById('prenda-catalogo').value;
-  const imgInp   = document.getElementById('prenda-img-inp');
-  if (!imgInp.files[0]) { toast('Selecciona una imagen', false); return; }
+  if (!catalogo) { toast('Selecciona un catálogo', false); return; }
+
+  // Validar imagen según el modo activo
+  let enlace = null;
+  let uploadFile = null;
+  if (_prendaImgMode === 'existente') {
+    enlace = document.getElementById('prenda-exist-enlace').value;
+    if (!enlace) { toast('Selecciona una imagen del catálogo', false); return; }
+  } else {
+    const imgInp = document.getElementById('prenda-img-inp');
+    if (!imgInp.files[0]) { toast('Selecciona una imagen', false); return; }
+    uploadFile = imgInp.files[0];
+  }
+
   try {
-    toast('Subiendo prenda…');
-    const file = imgInp.files[0];
-    const { base64, mime } = await fileToBase64(file, 1200);
     // Obtener número del catálogo
     const prodData = await apiAdminGet({ action: 'adminProducts', catalogo });
     const numero   = prodData.products.length ? prodData.products[0].numero : '';
-    // Subir imagen
-    const imgData = await apiAdminPost({
-      action: 'adminUploadImage',
-      catalogo: catalogo.toUpperCase(),
-      base64, mimeType: mime, fileName: file.name
-    });
+
+    if (uploadFile) {
+      toast('Subiendo imagen…');
+      const { base64, mime } = await fileToBase64(uploadFile, 1200);
+      const imgData = await apiAdminPost({
+        action: 'adminUploadImage',
+        catalogo: catalogo.toUpperCase(),
+        base64, mimeType: mime, fileName: uploadFile.name
+      });
+      enlace = imgData.enlace;
+    } else {
+      toast('Añadiendo prenda…');
+    }
+
     // Crear prenda
     await apiAdminPost({
       action: 'adminCreateProduct',
       product: {
-        enlace:      imgData.enlace,
+        enlace,
         valorUnit:   document.getElementById('prenda-valor').value,
         talla:       document.getElementById('prenda-talla').value,
         colores:     document.getElementById('prenda-colores').value,
@@ -962,7 +1219,13 @@ async function agregarPrendaExistente() {
       document.getElementById(id).value = '';
     });
     document.getElementById('prenda-img-preview').style.display = 'none';
-    imgInp.value = '';
+    document.getElementById('prenda-vid-preview').style.display = 'none';
+    document.getElementById('prenda-img-inp').value = '';
+    // Limpiar selección de imagen existente
+    document.getElementById('prenda-exist-enlace').value = '';
+    document.getElementById('prenda-exist-grid').querySelectorAll('[data-enlace]').forEach(c => {
+      c.style.borderColor = 'transparent'; c.style.background = 'transparent';
+    });
   } catch (e) {
     toast(e.message, false);
   }
