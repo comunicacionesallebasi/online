@@ -24,9 +24,31 @@
     </div>
   </div>
 
+  <!-- Lightbox -->
+  <div id="lightbox" onclick="closeLightbox()">
+    <button id="lightbox-close" onclick="closeLightbox()" title="Cerrar">✕</button>
+    <img id="lightbox-img" src="" alt="Vista ampliada" onclick="event.stopPropagation()">
+  </div>
+
   <script src="config.js"></script>
   <script src="common.js"></script>
   <script>
+    // ── Lightbox ──────────────────────────────────────────────
+    function openLightbox(src) {
+      // Pide mayor resolución reemplazando el parámetro sz de Drive
+      var hiRes = src.replace(/([?&]sz=)w\d+/, '$1w1600');
+      document.getElementById('lightbox-img').src = hiRes;
+      document.getElementById('lightbox').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeLightbox();
+    });
+
     const pedido = getPedido();
     const artista = pedido.artista;
     document.getElementById("titulo").textContent = artista || "Catálogo";
@@ -72,6 +94,8 @@
           var imgEl = document.createElement("img");
           imgEl.src = item.imagen;
           imgEl.alt = artista;
+          imgEl.title = "Clic para ampliar";
+          imgEl.addEventListener("click", function() { openLightbox(item.imagen); });
           tarjeta.appendChild(imgEl);
 
           if (item.video) {
