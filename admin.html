@@ -278,7 +278,7 @@ hr { border: none; border-top: 1.5px solid var(--border); margin: 20px 0; }
         <label>Imagen de la prenda</label>
         <div style="display:flex;gap:6px;margin-bottom:8px;">
           <button id="btn-prenda-nueva" onclick="setPrendaImgMode('nueva')"
-            style="font-size:.78rem;padding:4px 10px;border:none;border-radius:4px;cursor:pointer;background:var(--primary);color:#fff;">
+            style="font-size:.78rem;padding:4px 10px;border:none;border-radius:4px;cursor:pointer;background:var(--accent);color:#fff;">
             📷 Nueva imagen
           </button>
           <button id="btn-prenda-exist" onclick="setPrendaImgMode('existente')"
@@ -338,12 +338,31 @@ hr { border: none; border-top: 1.5px solid var(--border); margin: 20px 0; }
     <h3>Añadir prenda al catálogo</h3>
     <div class="form-group">
       <label>Imagen</label>
-      <div class="img-upload-area" onclick="document.getElementById('mp-img-inp').click()">
-        <p>📷 Seleccionar imagen o video</p>
-        <input type="file" id="mp-img-inp" accept="image/*,video/*" style="display:none" onchange="previewMpImg(this)">
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <button id="btn-mp-nueva" onclick="setMpImgMode('nueva')"
+          style="font-size:.78rem;padding:4px 10px;border:none;border-radius:4px;cursor:pointer;background:var(--accent);color:#fff;">
+          📷 Nueva imagen
+        </button>
+        <button id="btn-mp-exist" onclick="setMpImgMode('existente')"
+          style="font-size:.78rem;padding:4px 10px;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:var(--surface);color:var(--text);">
+          🔗 Imagen del catálogo
+        </button>
       </div>
-      <img id="mp-img-preview" src="" alt="" style="display:none;max-width:120px;margin-top:10px;border-radius:6px;">
-      <video id="mp-vid-preview" controls style="display:none;max-width:220px;margin-top:10px;border-radius:6px;"></video>
+      <!-- Modo nueva imagen -->
+      <div id="mp-upload-area">
+        <div class="img-upload-area" onclick="document.getElementById('mp-img-inp').click()">
+          <p>📷 Seleccionar imagen o video</p>
+          <input type="file" id="mp-img-inp" accept="image/*,video/*" style="display:none" onchange="previewMpImg(this)">
+        </div>
+        <img id="mp-img-preview" src="" alt="" style="display:none;max-width:120px;margin-top:10px;border-radius:6px;">
+        <video id="mp-vid-preview" controls style="display:none;max-width:220px;margin-top:10px;border-radius:6px;"></video>
+      </div>
+      <!-- Modo imagen existente del catálogo -->
+      <div id="mp-exist-area" style="display:none;">
+        <p id="mp-exist-hint" style="color:var(--muted);font-size:.83rem;margin-bottom:8px;">Cargando imágenes…</p>
+        <div id="mp-exist-grid" style="display:flex;flex-wrap:wrap;gap:8px;max-height:180px;overflow-y:auto;padding:4px 0;"></div>
+        <input type="hidden" id="mp-exist-enlace">
+      </div>
     </div>
     <div class="form-group">
       <label>Descripción</label>
@@ -663,15 +682,88 @@ function cambiarImagen(codigo, catalogo) {
 }
 
 // ─── Modal nueva prenda ────────────────────────────────────
+let _mpImgMode = 'nueva'; // 'nueva' | 'existente'
+
 function abrirModalNuevaPrenda() {
-  document.getElementById('mp-desc').value   = '';
-  document.getElementById('mp-horma').value  = '';
-  document.getElementById('mp-talla').value  = '';
-  document.getElementById('mp-colores').value= '';
-  document.getElementById('mp-valor').value  = '';
+  document.getElementById('mp-desc').value    = '';
+  document.getElementById('mp-horma').value   = '';
+  document.getElementById('mp-talla').value   = '';
+  document.getElementById('mp-colores').value = '';
+  document.getElementById('mp-valor').value   = '';
   document.getElementById('mp-img-preview').style.display = 'none';
+  document.getElementById('mp-vid-preview').style.display = 'none';
   document.getElementById('mp-img-inp').value = '';
+  // Resetear modo a "nueva imagen"
+  _mpImgMode = 'nueva';
+  document.getElementById('mp-upload-area').style.display = '';
+  document.getElementById('mp-exist-area').style.display  = 'none';
+  document.getElementById('mp-exist-enlace').value = '';
+  document.getElementById('mp-exist-grid').innerHTML = '';
+  const bN = document.getElementById('btn-mp-nueva');
+  const bE = document.getElementById('btn-mp-exist');
+  bN.style.background = 'var(--accent)'; bN.style.color = '#fff'; bN.style.border = 'none';
+  bE.style.background = 'var(--surface)'; bE.style.color = 'var(--text)'; bE.style.border = '1px solid var(--border)';
   document.getElementById('modal-prenda').classList.add('open');
+}
+
+function setMpImgMode(mode) {
+  _mpImgMode = mode;
+  const bN = document.getElementById('btn-mp-nueva');
+  const bE = document.getElementById('btn-mp-exist');
+  if (mode === 'nueva') {
+    document.getElementById('mp-upload-area').style.display = '';
+    document.getElementById('mp-exist-area').style.display  = 'none';
+    bN.style.background = 'var(--accent)'; bN.style.color = '#fff'; bN.style.border = 'none';
+    bE.style.background = 'var(--surface)'; bE.style.color = 'var(--text)'; bE.style.border = '1px solid var(--border)';
+  } else {
+    document.getElementById('mp-upload-area').style.display = 'none';
+    document.getElementById('mp-exist-area').style.display  = '';
+    bE.style.background = 'var(--accent)'; bE.style.color = '#fff'; bE.style.border = 'none';
+    bN.style.background = 'var(--surface)'; bN.style.color = 'var(--text)'; bN.style.border = '1px solid var(--border)';
+    cargarImagenesMpCatalogo();
+  }
+}
+
+async function cargarImagenesMpCatalogo() {
+  const grid   = document.getElementById('mp-exist-grid');
+  const hint   = document.getElementById('mp-exist-hint');
+  const hidden = document.getElementById('mp-exist-enlace');
+  grid.innerHTML = '';
+  hidden.value   = '';
+  hint.textContent = 'Cargando imágenes…';
+  hint.style.display = '';
+  try {
+    const data  = await apiAdminGet({ action: 'adminProducts', catalogo: _currentCatalogo });
+    const vistos = new Set();
+    const items  = (data.products || []).filter(p => {
+      if (!p.enlace || vistos.has(p.enlace)) return false;
+      vistos.add(p.enlace); return true;
+    });
+    if (!items.length) { hint.textContent = 'Este catálogo no tiene imágenes aún.'; return; }
+    hint.style.display = 'none';
+    items.forEach(p => {
+      const card = document.createElement('div');
+      card.dataset.enlace = p.enlace;
+      card.title = p.descripcion || '';
+      card.style.cssText = 'cursor:pointer;border:2px solid transparent;border-radius:8px;padding:3px;text-align:center;width:82px;flex-shrink:0;transition:border-color .15s;';
+      const fileId = (p.enlace.match(/[-\w]{25,}/) || [''])[0];
+      const thumb  = fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w120` : '';
+      card.innerHTML = thumb
+        ? `<img src="${thumb}" style="width:74px;height:74px;object-fit:cover;border-radius:5px;" onerror="this.parentElement.innerHTML='<span style=font-size:1.8rem>🖼️</span>'">
+           <div style="font-size:.65rem;margin-top:3px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.descripcion||''}</div>`
+        : `<span style="font-size:1.8rem">🖼️</span><div style="font-size:.65rem;color:var(--muted);">${p.descripcion||''}</div>`;
+      card.onclick = () => {
+        grid.querySelectorAll('[data-enlace]').forEach(c => { c.style.borderColor = 'transparent'; c.style.background = 'transparent'; });
+        card.style.borderColor = 'var(--accent)';
+        card.style.background  = 'rgba(44,44,44,.09)';
+        hidden.value = p.enlace;
+      };
+      grid.appendChild(card);
+    });
+  } catch (e) {
+    hint.textContent = 'Error: ' + e.message;
+    hint.style.display = '';
+  }
 }
 
 function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -693,27 +785,35 @@ function previewMpImg(inp) {
 }
 
 async function guardarNuevaPrenda() {
-  const imgInp = document.getElementById('mp-img-inp');
-  const desc   = document.getElementById('mp-desc').value.trim();
-  if (!imgInp.files[0]) { toast('Selecciona una imagen', false); return; }
+  // Validar imagen según modo
+  let enlace = null;
+  let uploadFile = null;
+  if (_mpImgMode === 'existente') {
+    enlace = document.getElementById('mp-exist-enlace').value;
+    if (!enlace) { toast('Selecciona una imagen del catálogo', false); return; }
+  } else {
+    const imgInp = document.getElementById('mp-img-inp');
+    if (!imgInp.files[0]) { toast('Selecciona una imagen', false); return; }
+    uploadFile = imgInp.files[0];
+  }
   try {
-    toast('Creando prenda…');
-    const file = imgInp.files[0];
-    const { base64, mime } = await fileToBase64(file, 1200);
+    toast(_mpImgMode === 'existente' ? 'Añadiendo prenda…' : 'Subiendo imagen…');
     // Obtener número del catálogo actual
     const numData = await apiAdminGet({ action: 'adminProducts', catalogo: _currentCatalogo });
     const numero = numData.products.length ? numData.products[0].numero : '';
-    // Subir imagen
-    const imgData = await apiAdminPost({
-      action: 'adminUploadImage',
-      catalogo: _currentCatalogo.toUpperCase(),
-      base64, mimeType: mime, fileName: file.name
-    });
-    // Crear prenda
+    if (uploadFile) {
+      const { base64, mime } = await fileToBase64(uploadFile, 1200);
+      const imgData = await apiAdminPost({
+        action: 'adminUploadImage',
+        catalogo: _currentCatalogo.toUpperCase(),
+        base64, mimeType: mime, fileName: uploadFile.name
+      });
+      enlace = imgData.enlace;
+    }
     await apiAdminPost({
       action: 'adminCreateProduct',
       product: {
-        enlace:      imgData.enlace,
+        enlace,
         valorUnit:   document.getElementById('mp-valor').value,
         talla:       document.getElementById('mp-talla').value,
         colores:     document.getElementById('mp-colores').value,
@@ -721,7 +821,7 @@ async function guardarNuevaPrenda() {
         existencia:  '',
         numero,
         catalogo:    _currentCatalogo,
-        descripcion: desc,
+        descripcion: document.getElementById('mp-desc').value.trim(),
         publicado:   ''
       }
     });
@@ -828,7 +928,7 @@ function agregarFilaNueva() {
       <label>Imagen</label>
       <div style="display:flex;gap:6px;margin-bottom:8px;">
         <button id="btn-nueva-${idx}" onclick="usarImagenNueva(${idx})"
-          style="font-size:.78rem;padding:4px 10px;border:none;border-radius:4px;cursor:pointer;background:var(--primary);color:#fff;">
+          style="font-size:.78rem;padding:4px 10px;border:none;border-radius:4px;cursor:pointer;background:var(--accent);color:#fff;">
           📷 Nueva imagen
         </button>
         <button id="btn-comp-${idx}" onclick="usarImagenCompartida(${idx})"
@@ -867,7 +967,7 @@ function usarImagenNueva(idx) {
   document.getElementById('shared-area-'  + idx).style.display = 'none';
   const bN = document.getElementById('btn-nueva-' + idx);
   const bC = document.getElementById('btn-comp-'  + idx);
-  bN.style.background = 'var(--primary)'; bN.style.color = '#fff'; bN.style.border = 'none';
+  bN.style.background = 'var(--accent)'; bN.style.color = '#fff'; bN.style.border = 'none';
   bC.style.background = 'var(--surface)'; bC.style.color = 'var(--text)'; bC.style.border = '1px solid var(--border)';
   // Restaurar imagen propia si la hubiera guardado antes
   _nuevasPrendas[idx] = _ownImageData[idx] || { base64: null, mime: null, fileName: null };
@@ -878,7 +978,7 @@ function usarImagenCompartida(idx) {
   document.getElementById('shared-area-'  + idx).style.display = '';
   const bN = document.getElementById('btn-nueva-' + idx);
   const bC = document.getElementById('btn-comp-'  + idx);
-  bC.style.background = 'var(--primary)'; bC.style.color = '#fff'; bC.style.border = 'none';
+  bC.style.background = 'var(--accent)'; bC.style.color = '#fff'; bC.style.border = 'none';
   bN.style.background = 'var(--surface)'; bN.style.color = 'var(--text)'; bN.style.border = '1px solid var(--border)';
   // Guardar imagen propia antes de perderla
   const curr = _nuevasPrendas[idx];
@@ -1076,12 +1176,12 @@ function setPrendaImgMode(mode) {
   if (mode === 'nueva') {
     document.getElementById('prenda-upload-area').style.display = '';
     document.getElementById('prenda-exist-area').style.display  = 'none';
-    bN.style.background = 'var(--primary)'; bN.style.color = '#fff'; bN.style.border = 'none';
+    bN.style.background = 'var(--accent)'; bN.style.color = '#fff'; bN.style.border = 'none';
     bE.style.background = 'var(--surface)'; bE.style.color = 'var(--text)'; bE.style.border = '1px solid var(--border)';
   } else {
     document.getElementById('prenda-upload-area').style.display = 'none';
     document.getElementById('prenda-exist-area').style.display  = '';
-    bE.style.background = 'var(--primary)'; bE.style.color = '#fff'; bE.style.border = 'none';
+    bE.style.background = 'var(--accent)'; bE.style.color = '#fff'; bE.style.border = 'none';
     bN.style.background = 'var(--surface)'; bN.style.color = 'var(--text)'; bN.style.border = '1px solid var(--border)';
     cargarImagenesExistentesCatalogo();
   }
@@ -1137,8 +1237,8 @@ async function cargarImagenesExistentesCatalogo() {
           c.style.borderColor = 'transparent';
           c.style.background  = 'transparent';
         });
-        card.style.borderColor = 'var(--primary)';
-        card.style.background  = 'rgba(var(--primary-rgb,80,120,255),.08)';
+        card.style.borderColor = 'var(--accent)';
+        card.style.background  = 'rgba(44,44,44,.09)';
         hidden.value = p.enlace;
       };
       grid.appendChild(card);
