@@ -5,9 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Allebasi - Catálogo</title>
 <link rel="stylesheet" href="style.css">
+<style>
+  .logo-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 24px 0 16px;
+  }
+  .logo-wrapper .logo {
+    width: 220px;
+    height: 220px;
+    object-fit: contain;
+    border-radius: 50%;
+    background-color: #f0f0f0;
+    padding: 12px;
+    box-sizing: border-box;
+  }
+</style>
 </head>
 <body>
-  <img class="logo" src="assets/logo_allebasi.jpg" alt="Allebasi">
+  <div class="logo-wrapper">
+    <img class="logo" src="assets/logo_allebasi.jpg" alt="Allebasi">
+  </div>
   <div class="contenedor">
     <div id="lista" class="menu-lista">
       <p class="estado">Cargando catálogos...</p>
